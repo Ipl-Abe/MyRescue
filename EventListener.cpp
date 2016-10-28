@@ -1,15 +1,8 @@
 
 
-/**
+/*
 * @file EventListener.cpp
 * @brief イベントの処理を記述する
-* @author Iwata Naoki
-* @date 2011-03-19
-* @version 1.00
-* @version 1.01 2013/03/21 katayama
-*
-* Copyright (C) 2010 - TPIP User Community All rights reserved.
-* このファイルの著作権は、TPIPユーザーコミュニティの規約に従い使用許諾をします。
 */
 
 #define __CV_H__
