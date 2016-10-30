@@ -1,51 +1,51 @@
 /**
 * @file WinMain.cpp
-* @brief WIN32 API‚ğ—˜—p‚µ‚½ƒvƒƒOƒ‰ƒ€‚ÌƒGƒ“ƒgƒŠ[ƒ|ƒCƒ“ƒg—pƒ‚ƒWƒ…[ƒ‹
+* @brief WIN32 APIã‚’åˆ©ç”¨ã—ãŸãƒ—ãƒ­ã‚°ãƒ©ãƒ ã®ã‚¨ãƒ³ãƒˆãƒªãƒ¼ãƒã‚¤ãƒ³ãƒˆç”¨ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
 * @author Iwata Naoki -> Y.Katayama
 * @date 2011-03-19
 * @version 1.00
 * @version 1.01 2013/03/21 katayama
 *
 * Copyright (C) 2008 TPIP User Community All rights reserved.
-* ‚±‚Ìƒtƒ@ƒCƒ‹‚Ì’˜ìŒ ‚ÍATPIPƒ†[ƒU[ƒRƒ~ƒ…ƒjƒeƒB‚Ì‹K–ñ‚É]‚¢g—p‹–‘ø‚ğ‚µ‚Ü‚·B
+* ã“ã®ãƒ•ã‚¡ã‚¤ãƒ«ã®è‘—ä½œæ¨©ã¯ã€TPIPãƒ¦ãƒ¼ã‚¶ãƒ¼ã‚³ãƒŸãƒ¥ãƒ‹ãƒ†ã‚£ã®è¦ç´„ã«å¾“ã„ä½¿ç”¨è¨±è«¾ã‚’ã—ã¾ã™ã€‚
 */
 
 /** \mainpage
-* 2015”NuK‰ïƒTƒ“ƒvƒ‹
+* 2015å¹´è¬›ç¿’ä¼šã‚µãƒ³ãƒ—ãƒ«
 */
 
 
-/*--------- ’è”’è‹` ---------*/
+/*--------- å®šæ•°å®šç¾© ---------*/
 
-#define TITLE         ("Robot_3")    //!< @brief ƒAƒvƒŠƒP[ƒVƒ‡ƒ“‚Ìƒ^ƒCƒgƒ‹
-#define WINDOW_WIDTH  (1200)                    //!< @brief ƒEƒBƒ“ƒhƒE‚Ì‰¡•
-#define WINDOW_HEIGHT ( 1100)                    //!< @brief ƒEƒBƒ“ƒhƒE‚Ìc•
-//#define IP            ("192.168.2.101")         //!< @brief ’ÊM‚·‚éTPIP‚ÌIPƒAƒhƒŒƒX
-//#define IP            ("192.168.2.102")		//2†‹@
-#define IP            ("192.168.2.103")		//3†‹@
+#define TITLE         ("Robot_3")    //!< @brief ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ã®ã‚¿ã‚¤ãƒˆãƒ«
+#define WINDOW_WIDTH  (1200)                    //!< @brief ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®æ¨ªå¹…
+#define WINDOW_HEIGHT ( 650)                    //!< @brief ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ç¸¦å¹…
+//#define IP            ("192.168.2.101")         //!< @brief é€šä¿¡ã™ã‚‹TPIPã®IPã‚¢ãƒ‰ãƒ¬ã‚¹
+//#define IP            ("192.168.2.102")		//2å·æ©Ÿ
+#define IP            ("192.168.2.103")		//3å·æ©Ÿ
 //#define IP            ("192.168.0.200")
 
 
 /*--------- include ---------*/
 
-#include <Windows.h>        // Win32APIŠÖŒW
+#include <Windows.h>        // Win32APIé–¢ä¿‚
 
-#include "TPIP3.h"          // TPIPŠÖŒW
+#include "TPIP3.h"          // TPIPé–¢ä¿‚
 
-#include "WindowManager.h"  // ƒEƒBƒ“ƒhƒEŠÖŒW
+#include "WindowManager.h"  // ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦é–¢ä¿‚
 
 
 
-/*--------- ŠÖ”’è‹` ---------*/
+/*--------- é–¢æ•°å®šç¾© ---------*/
 
 /**
-* ƒTƒuƒVƒXƒeƒ€‚ğWindows‚É‚µ‚½Û‚ÌƒvƒƒOƒ‰ƒ€‚ÌƒGƒ“ƒgƒŠ[ƒ|ƒCƒ“ƒg(ˆê”ÔÅ‰‚ÉÀs‚³‚ê‚éŠÖ”)\n
-* ƒCƒxƒ“ƒg‚Ìˆ—‚Í@link EventListener.cpp @endlink‚ÅÀ‘•‚·‚é
+* ã‚µãƒ–ã‚·ã‚¹ãƒ†ãƒ ã‚’Windowsã«ã—ãŸéš›ã®ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã®ã‚¨ãƒ³ãƒˆãƒªãƒ¼ãƒã‚¤ãƒ³ãƒˆ(ä¸€ç•ªæœ€åˆã«å®Ÿè¡Œã•ã‚Œã‚‹é–¢æ•°)\n
+* ã‚¤ãƒ™ãƒ³ãƒˆã®å‡¦ç†ã¯@link EventListener.cpp @endlinkã§å®Ÿè£…ã™ã‚‹
 *
-* @param[in] hInstance     Œ»İ‚ÌƒCƒ“ƒXƒ^ƒ“ƒX
-* @param[in] hPrevInstance ˆÈ‘O‚ÌƒCƒ“ƒXƒ^ƒ“ƒX
-* @param[in] szCmdLine     ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”
-* @param[in] iCmdShow      ƒEƒBƒ“ƒhƒE‚Ì•\¦•û–@
+* @param[in] hInstance     ç¾åœ¨ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹
+* @param[in] hPrevInstance ä»¥å‰ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹
+* @param[in] szCmdLine     ã‚³ãƒãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³å¼•æ•°
+* @param[in] iCmdShow      ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®è¡¨ç¤ºæ–¹æ³•
 *
 * @see http://msdn.microsoft.com/en-us/library/ms633559(VS.85).aspx
 *
@@ -53,21 +53,21 @@
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow) {
 
 	
-	HWND hwnd; // ƒEƒBƒ“ƒhƒEƒnƒ“ƒhƒ‹
-	MSG  msg;  // ƒCƒxƒ“ƒg‚ÌƒƒbƒZ[ƒW
+	HWND hwnd; // ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãƒãƒ³ãƒ‰ãƒ«
+	MSG  msg;  // ã‚¤ãƒ™ãƒ³ãƒˆã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸
 	TCHAR title[] = TEXT("robot_3");
-	hwnd = createMainWindow(hInstance, title, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);	// ƒEƒBƒ“ƒhƒE‚Ì¶¬
+	hwnd = createMainWindow(hInstance, title, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);	// ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ç”Ÿæˆ
 
-	TPGM_create(hwnd, VGA, NULL);	// ‰æ‘œ‹óŠÔiƒT[ƒtƒFƒCƒXj‚ğ¶¬‚·‚é
-	TPGC_init(hInstance, hwnd);		// ƒQ[ƒ€ƒRƒ“ƒgƒ[ƒ‰“ü—ÍŠÖ”‚Ì‰Šú‰»
+	TPGM_create(hwnd, VGA, NULL);	// ç”»åƒç©ºé–“ï¼ˆã‚µãƒ¼ãƒ•ã‚§ã‚¤ã‚¹ï¼‰ã‚’ç”Ÿæˆã™ã‚‹
+	TPGC_init(hInstance, hwnd);		// ã‚²ãƒ¼ãƒ ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©å…¥åŠ›é–¢æ•°ã®åˆæœŸåŒ–
 
-	TPJT_set_video_inf(VGA);		// ƒJƒƒ‰‰f‘œ‚Ì‰ğ‘œ“x‚ğw’è‚·‚é
-	TPJT_init(IP, hwnd);			// ’ÊMæ‚Ìİ’è
-	TPJT_set_com_req(0x03, 0);		// ’ÊM“à—e‚Ìİ’è
+	TPJT_set_video_inf(VGA);		// ã‚«ãƒ¡ãƒ©æ˜ åƒã®è§£åƒåº¦ã‚’æŒ‡å®šã™ã‚‹
+	TPJT_init(IP, hwnd);			// é€šä¿¡å…ˆã®è¨­å®š
+	TPJT_set_com_req(0x03, 0);		// é€šä¿¡å†…å®¹ã®è¨­å®š
 	
-	ShowWindow(hwnd, iCmdShow);		// ƒEƒBƒ“ƒhƒE‚Ì•\¦
+	ShowWindow(hwnd, iCmdShow);		// ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®è¡¨ç¤º
 
-	// ƒCƒxƒ“ƒg‚ğˆ—‚·‚é
+	// ã‚¤ãƒ™ãƒ³ãƒˆã‚’å‡¦ç†ã™ã‚‹
 	while (GetMessage(&msg, NULL, 0, 0)) {
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
