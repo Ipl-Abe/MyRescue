@@ -1,5 +1,4 @@
 
-
 /*
 * @file EventListener.cpp
 * @brief イベントの処理を記述する
@@ -33,21 +32,29 @@ int drive_mode;
 int pwm_flag;
 int op_flag;
 int flag, flag2;
+int button_flag = 0;
+
+DWORD nBegin = ::GetTickCount();  //@comment プログラム起動時のシステムの時間を保持
+DWORD start, end;					//@comment システム起動時間保持用変数
 
 short pwm;
 short pwm2;
 /*typedef struct OUT_DT_STR{
-	unsigned short d_out;
-	short nouse1;
-	short PWM[4];
-	short PWM2[16];
-	}out_dt_t;
-	*/
+unsigned short d_out;
+short nouse1;
+short PWM[4];
+short PWM2[16];
+}out_dt_t;
+*/
 
 struct OUT_DT_STR out_dt;
 
 #define SCALE_X 3.0
 #define SCALE_Y 5.0
+#define WIDTH 640
+#define HEIGHT 480
+#define AXIS_MAX 32767
+#define AXIS_MIN -32768
 
 
 //@comment ２つのカメラの切り替えフラグ
@@ -77,7 +84,7 @@ enum CTRL_BUTTON{
 	RGHT = 10,
 	LEFT = 11
 };
-	
+
 
 
 /*-------- 関数定義 --------*/
@@ -202,10 +209,6 @@ void rendController()
 *
 */
 BOOL onCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct) {
-	//mOutDt.PWM[3] = 250;
-	//mOutDt.PWM[0] = 0;
-	//mOutDt.PWM[1] = 700;
-	//mOutDt.PWM[2] = 920;
 	TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
 	SetTimer(hwnd, ID_MYTIMER, 60, NULL);	// タイマーを生成する
 	initCtrlGUI();
@@ -327,23 +330,66 @@ void onSize(HWND hwnd, UINT state, int cx, int cy) {
 
 
 void onTimer(HWND hwnd, UINT id) {
-
 	if (id == ID_MYTIMER) {		// 予期しないタイマーからのイベントは無視する
-
 		TPGC_get(&mPad);		// ゲームパッドからの入力を取得
-
 		TPJT_get_sens(&mInpDt, sizeof(mInpDt));	// センサ入力を取得
 		TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
 
 		if (mPad.Button[8] == 128){// スタートボタンで走行モード
 			ctrl_flag = 0;
-			//pwm_flag = 0;
+			pwm_flag = 0;
 		}
 		if (mPad.Button[9] == 128){// セレクトボタンで制御モード
 			ctrl_flag = 1;
 			op_flag = 0;
 		}
+
+		//////////////////////////////////////////
+		//@comment 左アナログスティック
+		//		走行はモードの概念なし
+		//////////////////////////////////////////
+		if ((mPad.axis[0] > AXIS_MIN / 2) && (mPad.axis[0] < AXIS_MAX / 2)){
+			if ((mPad.axis[1] < AXIS_MIN / 2))
+			{
+				//上
+				flag = 1;			//前進
+				mOutDt.d_out = 1;
+			}
+			if ((mPad.axis[1] > AXIS_MAX / 2))
+			{
+				//下
+				flag = 2;
+				mOutDt.d_out = 8;	
+			}
+		}
+		if (mPad.axis[0] > AXIS_MAX / 2){
+			if ((mPad.axis[1] > AXIS_MIN / 2) && (mPad.axis[1] < AXIS_MAX / 2))
+			{
+				//右
+				flag = 4;
+				mOutDt.d_out = 4;	
+			}
+		}
+		if (mPad.axis[0] < AXIS_MIN / 2){    //左を入力
+			if ((mPad.axis[1] > AXIS_MIN / 2) && (mPad.axis[1] < AXIS_MAX / 2))
+			{
+				//左
+				flag = 3;
+				mOutDt.d_out = 9;	
+			}
+		}
+		if ((mPad.axis[0] > AXIS_MIN / 2) && (mPad.axis[0] < AXIS_MAX / 2) &&
+			(mPad.axis[1] > AXIS_MIN / 2) && (mPad.axis[1] < AXIS_MAX / 2))
+		{
+			//停止
+			flag = 0;
+			mOutDt.d_out = 0;
+		}
+
+		/////////////////////////////////////
 		// PWM設定モード
+		//
+		/////////////////////////////////////
 		if (ctrl_flag == 0){
 
 			// 車輪 PWM設定
@@ -395,31 +441,21 @@ void onTimer(HWND hwnd, UINT id) {
 				if (mOutDt.PWM[3] >= 400) mOutDt.PWM[3] = 400;
 				else mOutDt.PWM[3] += 25;
 				//if (mOutDt.PWM[3] >= 850) mOutDt.PWM[3] = 850;
-					//else mOutDt.PWM[3] += 50;
-				}
+				//else mOutDt.PWM[3] += 50;
+			}
 			if (mPad.Button[3] == 128){
 				if (mOutDt.PWM[3] <= 0) mOutDt.PWM[3] = 0;
 				else mOutDt.PWM[3] -= 5;
 			}
 		}
+
+		//////////////////////////////////////////
 		// 制御モード
+		//
+		//////////////////////////////////////////
 		else if (ctrl_flag == 1){
-			if (mPad.POV[0] == -1){ // 操作無し
-				flag = 0;
-				mOutDt.d_out = 0;
-			}
-
-			if (mPad.Button[3] == 128){ // □　車輪・サーボ1・昇降機 操作
-				op_flag = 0;
-			}
-			else if (mPad.Button[1] == 128){ // ○　ベルコン・アーム・サーボ2 操作
-				op_flag = 1;
-			}
-
-
-
-			if (op_flag == 0){	// 車輪・サーボ1・昇降機 操作
-
+			
+				/*
 				// 車輪操作
 				if (mPad.POV[0] == 0){
 					mOutDt.d_out = 1;	// 前進
@@ -446,33 +482,45 @@ void onTimer(HWND hwnd, UINT id) {
 					flag = 4;
 					mOutDt.PWM[0] = pwm;
 				}
-				
-				// サーボ1操作
-
-				if (mPad.Button[6] == 128){
-					if (mOutDt.PWM2[0] >= 850)mOutDt.PWM2[0] = 850;
-					else mOutDt.PWM2[0] += 50;
+				*/
+				/////////////////////////////////////////
+				//@comment 右アナログスティック
+				//
+				/////////////////////////////////////////
+				if ((mPad.axis[2] > AXIS_MIN / 2) && (mPad.axis[2] < AXIS_MAX / 2)){
+					if ((mPad.axis[5] < AXIS_MIN / 2))
+					{
+						//@comment 昇降機上
+						mOutDt.d_out = 5;	// d_outのD1とD3に1出力
+					}
+					if ((mPad.axis[5] > AXIS_MAX / 2))
+					{
+						//@comment 昇降機下
+						mOutDt.d_out = 12;
+					}
 				}
-				else if (mPad.Button[4] == 128){
-					if (mOutDt.PWM2[0] <= -850) mOutDt.PWM2[0] = -850;
-					else mOutDt.PWM2[0] -= 50;
+				if (mPad.axis[2] > AXIS_MAX / 2){
+					if ((mPad.axis[5] > AXIS_MIN / 2) && (mPad.axis[5] < AXIS_MAX / 2))
+					{
+						//ベルコン右
+						mOutDt.d_out = 2;	// d_outのD2とD3に1出力
+					}
+				}
+				if (mPad.axis[2] < AXIS_MIN / 2){    //左を入力
+					if ((mPad.axis[5] > AXIS_MIN / 2) && (mPad.axis[5] < AXIS_MAX / 2))
+					{
+						//ベルコン左
+						mOutDt.d_out = 13;	// d_outのD1とD4に1出力
+					}
 				}
 
 				// 昇降機操作
-				if (mPad.Button[5] == 128){
-					mOutDt.d_out = 5;
-				}
-				else if (mPad.Button[7] == 128){
-					mOutDt.d_out = 12;
-				}
-			}
-
-
-			else if (ctrl_flag == 1 && op_flag == 1){	// ベルコン・アーム・サーボ2 操作
-				pwm = mOutDt.PWM[0];
-				pwm2 = mOutDt.PWM[1];
-				mOutDt.PWM[0] = 0;
-				mOutDt.PWM[1] = 0;
+				//if (mPad.Button[5] == 128){
+					//mOutDt.d_out = 5;
+				//}
+				//else if (mPad.Button[7] == 128){
+					//mOutDt.d_out = 12;
+				//}
 
 				// ベルコン操作
 				if (mPad.POV[0] == 9000){
@@ -483,43 +531,37 @@ void onTimer(HWND hwnd, UINT id) {
 				}
 
 				// アーム操作
-				if (mPad.Button[5] == 128){	// R1
-					pwm = mOutDt.PWM[0];
-					pwm2 = mOutDt.PWM[1];
+				if (mPad.POV[0] == 9000){
 					mOutDt.d_out = 3;
-					mOutDt.PWM[0] = pwm;
-					mOutDt.PWM[1] = pwm2;
 				}
-				else if (mPad.Button[7] == 128){	// R2
-					pwm = mOutDt.PWM[0];
-					pwm2 = mOutDt.PWM[1];
+				else if (mPad.POV[0] == 27000){	
 					mOutDt.d_out = 10;
-					mOutDt.PWM[0] = pwm;
-					mOutDt.PWM[1] = pwm2;
 				}
 
-				// サーボ2操作
+				// サーボ1操作
 				if (mPad.Button[6] == 128){
+					if (mOutDt.PWM2[0] >= 850)mOutDt.PWM2[0] = 850;
+					else mOutDt.PWM2[0] += 50;
+				}
+				else if (mPad.Button[4] == 128){
+					if (mOutDt.PWM2[0] <= -850) mOutDt.PWM2[0] = -850;
+					else mOutDt.PWM2[0] -= 50;
+				}
+				// サーボ2操作
+				if (mPad.Button[7] == 128){
 					if (mOutDt.PWM2[1] >= 850) mOutDt.PWM2[1] = 850;
 					else mOutDt.PWM2[1] += 50;
 				}
-				else if (mPad.Button[4] == 128){
+				else if (mPad.Button[5] == 128){
 					if (mOutDt.PWM2[1] <= -600) mOutDt.PWM2[1] = -600;
 					else mOutDt.PWM2[1] -= 50;
 				}
 
-
-
-				mOutDt.PWM[0] = pwm;
-				mOutDt.PWM[1] = pwm2;
-			}
-
+				TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));
 		}
-	
-		
 		//画面描画更新の監視処理
 		//タイマーイベント期間内に画面更新が無かった場合WM_PAINTメッセージを送信を行う。
-		
+
 
 		if (hwnd != NULL) {		// ウィンドウが生成されているか？
 			if (updatePaint) {	// onPaint 更新フラグが未更新か？
@@ -531,154 +573,6 @@ void onTimer(HWND hwnd, UINT id) {
 	return;
 }
 
-
-
-//1,3号機用
-/*
-void onTimer(HWND hwnd, UINT id) {
-if (id == ID_MYTIMER) {		// 予期しないタイマーからのイベントは無視する
-
-TPGC_get(&mPad);		// ゲームパッドからの入力を取得
-
-TPJT_get_sens(&mInpDt, sizeof(mInpDt));	// センサ入力を取得
-
-//@comment GUI上のコントローラ表示を変更
-//switchButtons();
-}
-
-		if (mPad.Button[2] == 128){
-			if (mOutDt.PWM[2] >= 850) mOutDt.PWM[2] = 850;	//上限に達したら最小値を設定
-			else mOutDt.PWM[2] += 20;	// PWM[0]の値を10加算
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-		if (mPad.Button[1] == 128){
-			if (mOutDt.PWM[2] <= -850) mOutDt.PWM[2] = -850;	//上限に達したら最小値を設定
-			else mOutDt.PWM[2] -= 20;	// PWM[0]の値を10加算
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-
-		if (mPad.Button[3] == 128){
-			if (mOutDt.PWM[1] >= 850) mOutDt.PWM[1] = 850;	//上限に達したら最小値を設定
-			else mOutDt.PWM[1] += 20;	// PWM[0]の値を10加算
-
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-		if (mPad.Button[0] == 128){
-			if (mOutDt.PWM[1] <= -850) mOutDt.PWM[1] = -850;	//下限に達したら最小値を設定
-			else mOutDt.PWM[1] -= 20;	// PWM[0]の値を10加算
-
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-			
-
-			
-		if (mPad.Button[7] == 128){
-			mOutDt.PWM[0] += 40;	// PWM[0]の値を10加算
-			if (mOutDt.PWM[0] >= 850) mOutDt.PWM[0] = 850;	//上限に達したら最小値を設定
-
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-		if (mPad.Button[5] == 128){
-			mOutDt.PWM[0] -= 40;	// PWM[0]の値を10加算
-			if (mOutDt.PWM[0] <-850) mOutDt.PWM[0] = -850;	//上限に達したら最小値を設定
-
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-			
-
-		if (mPad.Button[6] == 128){
-			mOutDt.PWM[3] += 50;	// PWM[0]の値を10加算
-			if (mOutDt.PWM[3] > 850) mOutDt.PWM[3] = 850;	//上限に達したら最小値を設定
-
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-		}
-		if (mPad.Button[4] == 128){
-			mOutDt.PWM[3] -= 50;	// PWM[0]の値を10加算
-			if (mOutDt.PWM[3] < 0) mOutDt.PWM[3] = 0;	//上限に達したら最小値を設定
-
-
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}*/
-
-		/*
-		if (mPad.Button[1] == 128){
-			mOutDt.PWM[3] += 20;	// PWM[0]の値を10加算
-			if (mOutDt.PWM[3] > PWM_MAX) mOutDt.PWM[3] = PWM_MIN;	//上限に達したら最小値を設定
-
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-		if (mPad.Button[2] == 128){
-			mOutDt.PWM[3] -= 20;	// PWM[0]の値を10加算
-			if (mOutDt.PWM[3] < PWM_MIN) mOutDt.PWM[3] = PWM_MAX;	//上限に達したら最小値を設定
-
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-			*/
-/*
-		if (mPad.POV[0] == 0){    //上を入力
-			flag = 1;
-			mOutDt.d_out = 5;	// d_outのD1とD3に1出力
-			
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-		if (mPad.POV[0] == 18000){   //下を入力
-			flag = 2;
-			mOutDt.d_out = 10;	// d_outのD2とD4に1出力
-			
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-		if (mPad.POV[0] == 27000){    //左を入力
-			flag = 3;
-			mOutDt.d_out = 9;	// d_out
-		
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-		if (mPad.POV[0] == 9000){    //右を入力
-			flag = 4;
-			
-			mOutDt.d_out = 6;	// d_outのD2とD3に1出力
-			
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-		if (mPad.POV[0] == -1){
-			flag = 0;
-			mOutDt.d_out = 0;
-
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			}
-			//画面描画更新の監視処理
-			//タイマーイベント期間内に画面更新が無かった場合WM_PAINTメッセージを送信を行う。
-		*/
-
-/*------axitデータテスト---------*/
-/*
-HDC hdc;
-		hdc = TPGM_getDC();
-		char msg1[40];
-		if (mPad.axis[1]){
-			//flag = 0;
-			//mOutDt.d_out = 0;
-
-			sprintf(msg1, "servo1 = %7d", mPad.axis[1]);
-			TextOut(hdc, 100, 800, (LPCSTR)msg1, lstrlen((LPCSTR)msg1));
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// 制御出力データセット
-			TPGM_releaseDC();			// デバイスコンテキストを解放
-			TPGM_screen();				// スクリーンへ描画
-
-			ValidateRect(hwnd, NULL);	// 画面更新を適用する
-		*/
-		/*-------------------------*/
-		/*}
-		if (hwnd != NULL) {		// ウィンドウが生成されているか？
-			if (updatePaint) {	// onPaint 更新フラグが未更新か？
-			InvalidateRect(hwnd, NULL, FALSE);	// WM_PAINTメッセージを送信
-				}
-			updatePaint = 1;	//  onPaint 更新フラグをRESET
-			}	
-			return;
-}
-*/
-		
 
 
 
@@ -750,148 +644,10 @@ void onKeyup(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags) {
 * @see http://msdn.microsoft.com/en-us/library/dd145213(VS.85).aspx
 *
 */
-/*
-void onPaint(HWND hwnd) {
-
-	RECT src = { 0, 0, 640, 480 };
-	RECT dst = { 200, 40, 1700, 1200 };
-
-	HDC   hdc;       // デバイスコンテキスト
-
-
-	//HDC hdc2 = CreateCompatibleDC(hdc);
-
-	//GetObject(hbmp, sizeof(bmp), &bmp);
-	//SelectObject(hdc2, hbmp);
-	//BitBlt(hdc2, posx, posy, bmp.bmWidth,bmp.bmHeight, hdc2,0,0,SRCCOPY);
-
-	//RECT  dst, src = {0, 0, 640, 480};
-	void* mJpegData;  // JPEGデータ格納変数
-	int   mJpegSize;  // JPEGデータサイズ
-	int  img_sz;	  //画像取り込みサイズ
-	IplImage *tpipImage, *resizeImage;  //入力画像バッファOpenCV
-	updatePaint = 1;			// onPaint 更新フラグを更新済に
-	//cvMat2HDC cvmat(tpipImage,hdc);
-	cv::Mat tpipImg, resizeImg;
-
-	//Jpegデータの取り出し
-	mJpegData = TPJT_get_jpeg_file(0, 0, &mJpegSize);	// JPEGデータの取出し
-
-	tpipImage = cvCreateImage(cvSize(640, 480), IPL_DEPTH_8U, 3);
-
-
-
-	//resizeImage = cvCreateImage(cvSize((int)(tpipImage -> width * SCALE_X),(int)(tpipImage->height * SCALE_Y)),IPL_DEPTH_8U,3);
-	if ((mJpegData) && (mJpegSize > 0)) {	// JPEGデータが有りの場合
-
-
-		TPGM_decode(mJpegData, mJpegSize);	// JPEGデータをカメラ画像にデコードする
-	}
-	TPJT_free_jpeg_file();					// JPEGデータの解放
-	//画像データの解放
-	cvReleaseImage(&tpipImage);				//Opencv画像データの解放
-	//cvReleaseImage(&resizeImage);			//データを使っていないときに使用すると
-	//例外扱いされる
-
-	//TPGM_copy(0, 0);			// ウィンドウ座標(0,0)位置に固定サイズ(480x640)でカメラ映像を描画する
-	TPGM_copy2(&src, &dst);	// サイズを変更してカメラ映像を描画する時に使用する。
-
-	hdc = TPGM_getDC();			// デバイスコンテキストを取得する
-	//TPJT_set_video_inf(QVGA);
-	//TPJT_init("192.168.2.101", hwnd);
-	//TPJT_set_com_req(0x03, 0);
-
-	static int img_sz2 = 0; //画像取り込みサイズ
-	IplImage *tpipImage2;
-	HDC   hdc2;       // デバイスコンテキスト
-	//RECT  dst, src = {0, 0, 640, 480};
-	void* mJpegData2;  // JPEGデータ格納変数
-	int   mJpegSize2;  // JPEGデータサイズ
-	int connectId2 = TPJT_get_com_mode();
-	static char send_buf[1024];
-	static char recv_buf[1024];
-	w32udp* com = NULL;
-	int err;
-	char m[40], m2[40];
-	com = new w32udp("UDP_S");
-
-	err = com->open("127.0.0.1", 9000,-1);
-	//com->re
-	//err = com->open("192.168.2.103", 9000, 2 * 100);
-
-	//char* ip = "192.168.2.103";
-
-	sprintf(m,"send_to = %d",err);
-	TextOut(hdc,800,900,(LPCSTR)m,lstrlen((LPCSTR)m));
-	
-	int snd_cnt, rcv_cnt;
-
-	//snd_cnt = com->send(send_buf, sizeof(send_buf));
-
-	rcv_cnt = com->recv(recv_buf, sizeof(recv_buf));
-	
-
-	sprintf(m2, "rcv = %d", recv_buf);
-	TextOut(hdc, 700, 900, (LPCSTR)m2, lstrlen((LPCSTR)m2));
-	com->close();
-	delete com;
-
-
-
-
-char msg[40],msg1[40],msg2[40],msg3[40],msg4[40],msg5[40];	// 文字列格納変数定義
-LPTSTR lpt = NULL;
-SetBkColor(hdc, RGB(0, 0, 0));				// 文字背景色指定
-SetTextColor(hdc, RGB(255, 255, 255));		// 文字色指定（白）
-
-if (flag == 1){
-lpt = TEXT("前進");
-TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// 文字表示
-}
-if (flag == 2){
-lpt = TEXT("後退");
-TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// 文字表示
-}
-
-if (flag == 3){
-lpt = TEXT("左進");
-TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// 文字表示
-}
-if (flag == 4){
-lpt = TEXT("右進");
-TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// 文字表示
-}
-if (flag == 0){
-lpt = TEXT("停止");
-TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// 文字表示
-}
-
-
-sprintf(msg1,"servo1 = %7d",mOutDt.PWM[0]);
-TextOut(hdc, 100, 500, (LPCSTR)msg1, lstrlen((LPCSTR)msg1));
-sprintf(msg2,"servo2 = %7d", mOutDt.PWM[1]);
-TextOut(hdc, 350, 500, (LPCSTR)msg2, lstrlen((LPCSTR)msg2));
-sprintf(msg3,"servo3 = %7d", mOutDt.PWM[2]);
-TextOut(hdc, 600, 500, msg3, lstrlen(msg3));
-sprintf(msg4, "motor PWM = %7d", mOutDt.PWM[3]);
-TextOut(hdc, 350, 450, msg4, lstrlen(msg4));
-
-
-
-TPGM_releaseDC();			// デバイスコンテキストを解放
-TPGM_screen();				// スクリーンへ描画
-
-ValidateRect(hwnd, NULL);	// 画面更新を適用する
-
-return;
-}
-*/
-
 
 void onPaint(HWND hwnd) {
 
 	HDC   hdc;       // デバイスコンテキスト
-	//RECT  dst, src = {0, 0, 640, 480};
 	void* mJpegData;  // JPEGデータ格納変数
 	int   mJpegSize;  // JPEGデータサイズ
 
@@ -905,7 +661,7 @@ void onPaint(HWND hwnd) {
 	TPJT_free_jpeg_file();					// JPEGデータの解放
 
 
-	TPGM_copy(0, 0);			// ウィンドウ座標(0,0)位置に固定サイズ(480x640)でカメラ映像を描画する 
+	TPGM_copy(100, 20);			// ウィンドウ座標(0,0)位置に固定サイズ(480x640)でカメラ映像を描画する 
 	//TPGM_copy2(&src, &dst);	// サイズを変更してカメラ映像を描画する時に使用する。
 
 	hdc = TPGM_getDC();			// デバイスコンテキストを取得する
@@ -919,106 +675,85 @@ void onPaint(HWND hwnd) {
 	else{
 		sprintf(msg, "制御モード");
 	}
-	TextOut(hdc, 100, 500, msg, lstrlen(msg));
-	if (drive_mode == 0){
-		sprintf(msg, "前進モード");
-	}
-	else{
-		sprintf(msg, "後進モード");
-	}
-	TextOut(hdc, 200, 500, msg, lstrlen(msg));
-	sprintf(msg, "左モーターPWM: %5d, 右モーターPWM:%5d", (mOutDt.PWM[0]), (mOutDt.PWM[1]));
-	TextOut(hdc, 100, 520, msg, lstrlen(msg));
+	TextOut(hdc, 750, 50, msg, lstrlen(msg));
+	sprintf(msg, "モーターPWM: %5d",(mOutDt.PWM[0]));
+	TextOut(hdc, 750, 70, msg, lstrlen(msg));
+
+	sprintf(msg, "ベルコンPWM: %5d", (mOutDt.PWM[2]));
+	TextOut(hdc, 750, 90, msg, lstrlen(msg));
+	sprintf(msg, "アームPWM:   %5d", (mOutDt.PWM[3]));
+	TextOut(hdc, 750, 110, msg, lstrlen(msg));
 
 
-	sprintf(msg, "ベルコンPWM: %5d, アームPWM:%5d", (mOutDt.PWM[2]), (mOutDt.PWM[3]));
-	TextOut(hdc, 100, 600, msg, lstrlen(msg));
-
-	sprintf(msg, "サーボ１PWM: %5d, サーボ２PWM:%5d", (mOutDt.PWM2[0]), (mOutDt.PWM2[1]));
-	TextOut(hdc, 100, 680, msg, lstrlen(msg));
-
-	sprintf(msg, "昇降機PWM: %5d", (mOutDt.PWM2[2]));
-	TextOut(hdc, 100, 740, msg, lstrlen(msg));
-
-	sprintf(msg, "op_flag: %5d", (op_flag));
-	TextOut(hdc, 100, 760, msg, lstrlen(msg));
-
+	sprintf(msg, "サーボ1PWM:  %5d", (mOutDt.PWM2[0]));
+	TextOut(hdc, 750, 200, msg, lstrlen(msg));
+	sprintf(msg, "サーボ2PWM:  %5d", (mOutDt.PWM2[1]));
+	TextOut(hdc, 750, 220, msg, lstrlen(msg));
+	sprintf(msg, "昇降機PWM:   %5d", (mOutDt.PWM2[2]));
+	TextOut(hdc, 750, 130, msg, lstrlen(msg));
 
 	if (flag == 0){
 		sprintf(msg, "停止 ");
-		TextOut(hdc, 100, 540, msg, lstrlen(msg));	// 文字表示
+		TextOut(hdc, 700, 500, msg, lstrlen(msg));	// 文字表示
 	}
 	if (flag == 1){
 		sprintf(msg, "前進 ");
-		TextOut(hdc, 100, 540, msg, lstrlen(msg));	// 文字表示
+		TextOut(hdc, 700, 500, msg, lstrlen(msg));	// 文字表示
 	}
 	if (flag == 2){
 		sprintf(msg, "後進 ");
-		TextOut(hdc, 100, 540, msg, lstrlen(msg));	// 文字表示
+		TextOut(hdc, 700, 500, msg, lstrlen(msg));	// 文字表示
 	}
 	if (flag == 3){
 		sprintf(msg, "左進 ");
-		TextOut(hdc, 100, 540, msg, lstrlen(msg));	// 文字表示
+		TextOut(hdc, 700, 500, msg, lstrlen(msg));	// 文字表示
 	}
 	if (flag == 4){
 		sprintf(msg, "右進 ");
-		TextOut(hdc, 100, 540, msg, lstrlen(msg));	// 文字表示
+		TextOut(hdc, 700, 500, msg, lstrlen(msg));	// 文字表示
 	}
 
 	sprintf(msg, "START = PWM設定モード");
-	TextOut(hdc, 700, 20, msg, lstrlen(msg));
-	sprintf(msg, "↑ = 車輪 PWM 上昇");
-	TextOut(hdc, 700, 40, msg, lstrlen(msg));
-	sprintf(msg, "↓ = 車輪 PWM 下降");
-	TextOut(hdc, 700, 60, msg, lstrlen(msg));
-	sprintf(msg, "→ = 昇降機 PWM 上昇");
-	TextOut(hdc, 700, 90, msg, lstrlen(msg));
-	sprintf(msg, "← = 昇降機 PWM 下降");
-	TextOut(hdc, 700, 110, msg, lstrlen(msg));
-	sprintf(msg, "△ = ベルコン PWM 上昇");
-	TextOut(hdc, 700, 140, msg, lstrlen(msg));
-	sprintf(msg, "× = ベルコン PWM 下降");
-	TextOut(hdc, 700, 160, msg, lstrlen(msg));
-	sprintf(msg, "○ = アーム PWM 上昇");
-	TextOut(hdc, 700, 190, msg, lstrlen(msg));
-	sprintf(msg, "□ = アーム PWM 下降");
-	TextOut(hdc, 700, 210, msg, lstrlen(msg));
+	TextOut(hdc,950, 10, msg, lstrlen(msg));
+	sprintf(msg, " ↑ = 車輪 PWM 上昇");
+	TextOut(hdc,950, 30, msg, lstrlen(msg));
+	sprintf(msg, " ↓ = 車輪 PWM 下降");
+	TextOut(hdc,950, 50, msg, lstrlen(msg));
+	sprintf(msg, " → = 昇降機 PWM 上昇");
+	TextOut(hdc,950, 80, msg, lstrlen(msg));
+	sprintf(msg, " ← = 昇降機 PWM 下降");
+	TextOut(hdc,950, 100, msg, lstrlen(msg));
+	sprintf(msg, " △ = ベルコン PWM 上昇");
+	TextOut(hdc,950, 130, msg, lstrlen(msg));
+	sprintf(msg, " × = ベルコン PWM 下降");
+	TextOut(hdc,950, 150, msg, lstrlen(msg));
+	sprintf(msg, " ○ = アーム PWM 上昇");
+	TextOut(hdc,950, 180, msg, lstrlen(msg));
+	sprintf(msg, " □ = アーム PWM 下降");
+	TextOut(hdc,950, 200, msg, lstrlen(msg));
 
 	sprintf(msg, "SELECT = 制御モード");
-	TextOut(hdc, 700, 250, msg, lstrlen(msg));
-
-	sprintf(msg, "□ = 車輪・サーボ１・昇降機　制御");
-	TextOut(hdc, 700, 270, msg, lstrlen(msg));
-	sprintf(msg, "   ↑ = 前進");
-	TextOut(hdc, 700, 290, msg, lstrlen(msg));
-	sprintf(msg, "   ↓ = 後退");
-	TextOut(hdc, 700, 310, msg, lstrlen(msg));
-	sprintf(msg, "   → = 右旋回");
-	TextOut(hdc, 700, 330, msg, lstrlen(msg));
-	sprintf(msg, "   ← = 左旋回");
-	TextOut(hdc, 700, 350, msg, lstrlen(msg));
+	TextOut(hdc,950, 250, msg, lstrlen(msg));
 	sprintf(msg, "   L1 = アーム第一関節 下降");
-	TextOut(hdc, 700, 380, msg, lstrlen(msg));
+	TextOut(hdc,950, 280, msg, lstrlen(msg));
 	sprintf(msg, "   L2 = アーム第一関節 上昇");
-	TextOut(hdc, 700, 400, msg, lstrlen(msg));
+	TextOut(hdc,950, 300, msg, lstrlen(msg));
 	sprintf(msg, "   R1 = 昇降機 上昇");
-	TextOut(hdc, 700, 430, msg, lstrlen(msg));
+	TextOut(hdc,950, 330, msg, lstrlen(msg));
 	sprintf(msg, "   R2 = 昇降機 下降");
-	TextOut(hdc, 700, 450, msg, lstrlen(msg));
-	sprintf(msg, "○ = ベルコン・サーボ２・アーム　制御");
-	TextOut(hdc, 700, 480, msg, lstrlen(msg));
+	TextOut(hdc,950, 350, msg, lstrlen(msg));
 	sprintf(msg, "   → = ベルコン 押し出し");
-	TextOut(hdc, 700, 500, msg, lstrlen(msg));
+	TextOut(hdc,950, 400, msg, lstrlen(msg));
 	sprintf(msg, "   ← = ベルコン 引き込み");
-	TextOut(hdc, 700, 520, msg, lstrlen(msg));
+	TextOut(hdc,950, 420, msg, lstrlen(msg));
 	sprintf(msg, "   L1 = アーム第二関節 上昇");
-	TextOut(hdc, 700, 550, msg, lstrlen(msg));
+	TextOut(hdc,950, 450, msg, lstrlen(msg));
 	sprintf(msg, "   L2 = アーム第二関節 下降");
-	TextOut(hdc, 700, 570, msg, lstrlen(msg));
+	TextOut(hdc,950, 470, msg, lstrlen(msg));
 	sprintf(msg, "   R1 = アーム 前");
-	TextOut(hdc, 700, 600, msg, lstrlen(msg));
+	TextOut(hdc,950, 500, msg, lstrlen(msg));
 	sprintf(msg, "   R2 = アーム 後");
-	TextOut(hdc, 700, 620, msg, lstrlen(msg));
+	TextOut(hdc,950, 520, msg, lstrlen(msg));
 
 	TPGM_releaseDC();			// デバイスコンテキストを解放
 	TPGM_screen();				// スクリーンへ描画
@@ -1154,4 +889,6 @@ void onRButtonDblClk(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags) 
 void onMouseMove(HWND hwnd, int x, int y, UINT keyFlags) {
 	return;
 }
+
+
 
