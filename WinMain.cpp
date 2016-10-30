@@ -20,11 +20,8 @@
 #define TITLE         ("Robot_3")    //!< @brief アプリケーションのタイトル
 #define WINDOW_WIDTH  (1200)                    //!< @brief ウィンドウの横幅
 #define WINDOW_HEIGHT ( 650)                    //!< @brief ウィンドウの縦幅
-//#define IP            ("192.168.2.101")         //!< @brief 通信するTPIPのIPアドレス
-//#define IP            ("192.168.2.102")		//2号機
-#define IP            ("192.168.2.103")		//3号機
-//#define IP            ("192.168.0.200")
 
+#define IP            ("192.168.2.103")		//3号機
 
 /*--------- include ---------*/
 
