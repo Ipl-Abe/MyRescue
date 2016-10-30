@@ -36,8 +36,6 @@ static int    updatePaint;			//!< @brief onPaint 更新フラグ(0:更新済　1
 int flag, flag2,button_flag=0;
 DWORD nBegin = ::GetTickCount();  //@comment プログラム起動時のシステムの時間を保持
 DWORD start, end;					//@comment システム起動時間保持用変数
-//@comment ２つのカメラの切り替えフラグ
-bool cameraFlg = true;
 //@comment コントローラーGUI画像を表示する
 cvMat2HDC ctrl[12];
 //@comment △、□、○、×の位置
