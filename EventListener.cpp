@@ -1,20 +1,9 @@
-/**
-* @file EventListener.cpp
-* @brief ƒCƒxƒ“ƒg‚Ìˆ—‚ğ‹Lq‚·‚é
-* @author Iwata Naoki
-* @date 2011-03-19
-* @version 1.00
-* @version 1.01 2013/03/21 katayama
-*
-* Copyright (C) 2010 - TPIP User Community All rights reserved.
-* ‚±‚Ìƒtƒ@ƒCƒ‹‚Ì’˜ìŒ ‚ÍATPIPƒ†[ƒU[ƒRƒ~ƒ…ƒjƒeƒB‚Ì‹K–ñ‚É]‚¢g—p‹–‘ø‚ğ‚µ‚Ü‚·B
-*/
-
 #define __CV_H__
 /*-------- include --------*/
-#include "TPIP3.h"           // TPIPŠÖŒW
-#include "EventListener.h"   // ƒEƒBƒ“ƒhƒE‚ÌƒCƒxƒ“ƒgˆ—ŠÖŒW
+#include "TPIP3.h"           // TPIPé–¢ä¿‚
+#include "EventListener.h"   // ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ã‚¤ãƒ™ãƒ³ãƒˆå‡¦ç†é–¢ä¿‚
 #include "cvMat2HDC.h"
+
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -23,43 +12,49 @@
 #include <opencv/highgui.h>
 #include <vector>
 #include <fstream>
-#include <sys/types.h>
-//#include <winsock2.h>
-
-
-
-//#include<winsock2.h>
-//#include<ws2tcpip.h>
-
 
 #include <stdio.h>
-#pragma  warning(disable:4996)	//	ƒZƒLƒ…ƒŠƒeƒB‚ªã‚¢ŒÃ‚¢ŠÖ”‚É‘Î‚·‚éŒx‚Ì‰ğœ
-//#pragma comment( lib, "wsock32.lib" )
-//#pragma comment( lib, "ws2_32.lib")
+#pragma  warning(disable:4996)	//	ã‚»ã‚­ãƒ¥ãƒªãƒ†ã‚£ãŒå¼±ã„å¤ã„é–¢æ•°ã«å¯¾ã™ã‚‹è­¦å‘Šã®è§£é™¤
 
-#define WIDTH 640
-#define HEIGHT 480
-
-/*-------- ƒƒ“ƒo•Ï”’è‹` --------*/
-static struct GC_STRUCT  mPad;		//!< @brief ƒQ[ƒ€ƒpƒbƒh“ü—Íƒf[ƒ^
-static struct OUT_DT_STR mOutDt;	//!< @brief TPJT‚Åˆµ‚¤§Œäî•ñ
-static struct INP_DT_STR mInpDt;	//!< @brief TPJT‚Åˆµ‚¤ƒZƒ“ƒT[î•ñ
-static int    updatePaint;			//!< @brief onPaint XVƒtƒ‰ƒO(0:XVÏ@1:–¢XV)
+/*-------- ãƒ¡ãƒ³ãƒå¤‰æ•°å®šç¾© --------*/
+static struct GC_STRUCT  mPad;		//!< @brief ã‚²ãƒ¼ãƒ ãƒ‘ãƒƒãƒ‰å…¥åŠ›ãƒ‡ãƒ¼ã‚¿
+static struct OUT_DT_STR mOutDt;	//!< @brief TPJTã§æ‰±ã†åˆ¶å¾¡æƒ…å ±
+static struct INP_DT_STR mInpDt;	//!< @brief TPJTã§æ‰±ã†ã‚»ãƒ³ã‚µãƒ¼æƒ…å ±
+static int    updatePaint;			//!< @brief onPaint æ›´æ–°ãƒ•ãƒ©ã‚°(0:æ›´æ–°æ¸ˆã€€1:æœªæ›´æ–°)
+int ctrl_flag;
+int drive_mode;
+int pwm_flag;
+int op_flag;
 int flag, flag2;
-DWORD nBegin = ::GetTickCount();  //@comment ƒvƒƒOƒ‰ƒ€‹N“®‚ÌƒVƒXƒeƒ€‚ÌŠÔ‚ğ•Û
-DWORD start,end;					//@comment ƒVƒXƒeƒ€‹N“®ŠÔ•Û—p•Ï”
-//@comment ‚Q‚Â‚ÌƒJƒƒ‰‚ÌØ‚è‘Ö‚¦ƒtƒ‰ƒO
+
+short pwm;
+short pwm2;
+/*typedef struct OUT_DT_STR{
+	unsigned short d_out;
+	short nouse1;
+	short PWM[4];
+	short PWM2[16];
+	}out_dt_t;
+	*/
+
+struct OUT_DT_STR out_dt;
+
+#define SCALE_X 3.0
+#define SCALE_Y 5.0
+
+
+//@comment ï¼’ã¤ã®ã‚«ãƒ¡ãƒ©ã®åˆ‡ã‚Šæ›¿ãˆãƒ•ãƒ©ã‚°
 bool cameraFlg = true;
-//@comment ƒRƒ“ƒgƒ[ƒ‰[GUI‰æ‘œ‚ğ•\¦‚·‚é
+//@comment ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼GUIç”»åƒã‚’è¡¨ç¤ºã™ã‚‹
 cvMat2HDC ctrl[12];
-//@comment ¢A A›A~‚ÌˆÊ’u
+//@comment â–³ã€â–¡ã€â—‹ã€Ã—ã®ä½ç½®
 const int circlePos[4][2] = { { 1055, 480 }, { 990, 550 }, { 1115, 550 }, { 1055, 620 } };
-//@comment@•ûŒüƒL[‚ÌˆÊ’u
+//@commentã€€æ–¹å‘ã‚­ãƒ¼ã®ä½ç½®
 const int rec1Pos[2][2] = { { 740, 480 }, { 740, 620 } };
 const int rec2Pos[2][2] = { { 670, 550 }, { 800, 550 } };
-//@comemnt l1, l2, r1, r2‚ÌˆÊ’u
+//@comemnt l1, l2, r1, r2ã®ä½ç½®
 const int lrPos[4][2] = { { 700, 300 }, { 700, 370 }, { 1020, 300 }, { 1020, 370 } };
-//@comment ƒRƒ“ƒgƒ[ƒ‰[‚ª‰Ÿ‚³‚ê‚Ä‚¢‚é‚©
+//@comment ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼ãŒæŠ¼ã•ã‚Œã¦ã„ã‚‹ã‹
 bool ctrlFlg[12] = { false, false, false, false, false, false, false, false, false, false, false, false };
 enum CTRL_BUTTON{
 	TRGL = 0,
@@ -75,31 +70,32 @@ enum CTRL_BUTTON{
 	RGHT = 10,
 	LEFT = 11
 };
+	
 
 
-/*-------- ŠÖ”’è‹` --------*/
-//@comment ƒRƒ“ƒgƒ[ƒ‰[GUI‚Ì‰æ‘œ‚ÌˆÊ’u‚Ì‰Šú‰»
+/*-------- é–¢æ•°å®šç¾© --------*/
+//@comment ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼GUIã®ç”»åƒã®ä½ç½®ã®åˆæœŸåŒ–
 void initCtrlGUI()
 {
-	//@comment ›ƒ{ƒ^ƒ“
+	//@comment â—‹ãƒœã‚¿ãƒ³
 	for (int i = 0; i < 4; i++){
 		ctrl[i].setRendPos(circlePos[i][0], circlePos[i][1]);
 	}
-	//@comment lrƒ{ƒ^ƒ“
+	//@comment lrãƒœã‚¿ãƒ³
 	for (int i = 0; i < 4; i++){
 		ctrl[i + 4].setRendPos(lrPos[i][0], lrPos[i][1]);
 	}
-	//@comment rect1ƒ{ƒ^ƒ“
+	//@comment rect1ãƒœã‚¿ãƒ³
 	for (int i = 0; i < 2; i++){
 		ctrl[i + 8].setRendPos(rec1Pos[i][0], rec1Pos[i][1]);
 	}
-	//@comment lrƒ{ƒ^ƒ“
+	//@comment lrãƒœã‚¿ãƒ³
 	for (int i = 0; i < 2; i++){
 		ctrl[i + 10].setRendPos(rec2Pos[i][0], rec2Pos[i][1]);
 	}
 }
 
-//@comment ƒRƒ“ƒgƒ[ƒ‰[GUI‚Ö‚Ì‰Ÿ‚³‚ê‚Ä‚¢‚é‚©‚Ç‚¤‚©‚Ìƒtƒ‰ƒO•ÏX
+//@comment ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼GUIã¸ã®æŠ¼ã•ã‚Œã¦ã„ã‚‹ã‹ã©ã†ã‹ã®ãƒ•ãƒ©ã‚°å¤‰æ›´
 void switchButtons()
 {
 	//@comment R1
@@ -134,45 +130,45 @@ void switchButtons()
 	if (mPad.Button[3] == 128){ ctrlFlg[RCTG] = true; }
 	else{ ctrlFlg[RCTG] = false; }
 
-	//ã‚ğ“ü—Í
+	//ä¸Šã‚’å…¥åŠ›
 	if (mPad.POV[0] == 0){ ctrlFlg[UP] = true; }
 	else{ ctrlFlg[UP] = false; }
 
-	//‰º‚ğ“ü—Í
+	//ä¸‹ã‚’å…¥åŠ›
 	if (mPad.POV[0] == 18000){ ctrlFlg[DOWN] = true; }
 	else{ ctrlFlg[DOWN] = false; }
 
-	//¶‚ğ“ü—Í
+	//å·¦ã‚’å…¥åŠ›
 	if (mPad.POV[0] == 27000){ ctrlFlg[RGHT] = true; }
 	else{ ctrlFlg[RGHT] = false; }
 
-	//‰E‚ğ“ü—Í
+	//å³ã‚’å…¥åŠ›
 	if (mPad.POV[0] == 9000){ ctrlFlg[LEFT] = true; }
 	else{ ctrlFlg[LEFT] = false; }
 }
 
-//@comment ƒRƒ“ƒgƒ[ƒ‰[GUI‚Ì•`‰æ
+//@comment ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼GUIã®æç”»
 void rendController()
 {
 	for (int i = 0; i < 12; i++){
 		ctrl[i].setHDC();
 	}
-	//@comment ›ƒ{ƒ^ƒ“
+	//@comment â—‹ãƒœã‚¿ãƒ³
 	for (int i = 0; i < 4; i++){
 		if (ctrlFlg[i]){ ctrl[i].load("./img/circle_on"); }
 		else{ ctrl[i].load("./img/circle"); }
 	}
-	//@comment lrƒ{ƒ^ƒ“
+	//@comment lrãƒœã‚¿ãƒ³
 	for (int i = 0; i < 4; i++){
 		if (ctrlFlg[i + 4]){ ctrl[i + 4].load("./img/lr_on"); }
 		else{ ctrl[i + 4].load("img/lr"); }
 	}
-	//@comment rect1ƒ{ƒ^ƒ“
+	//@comment rect1ãƒœã‚¿ãƒ³
 	for (int i = 0; i < 2; i++){
 		if (ctrlFlg[i + 8]){ ctrl[i + 8].load("./img/rect_1_on"); }
 		else{ ctrl[i + 8].load("./img/rect_1"); }
 	}
-	//@comment lrƒ{ƒ^ƒ“
+	//@comment lrãƒœã‚¿ãƒ³
 	for (int i = 0; i < 2; i++){
 		if (ctrlFlg[i + 10]){ ctrl[i + 10].load("./img/rect_2_on"); }
 		else{ ctrl[i + 10].load("./img/rect_2"); }
@@ -183,43 +179,41 @@ void rendController()
 	}
 }
 
+
+
 /**
-* WM_CREATE‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒEƒBƒ“ƒhƒE‚ª¶¬‚³‚ê‚é‘O‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”\n
-* ‚±‚±‚Å¶¬‚µ‚½ƒ^ƒCƒ}[‚ğ—˜—p‚µATPIP‚Æ‚Ì’ÊMA‰æ–Ê‚Ì•`‰æ‚ÌƒCƒxƒ“ƒg‚ğ”­¶‚µ‚Ü‚·
+* WM_CREATEã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒç”Ÿæˆã•ã‚Œã‚‹å‰ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°\n
+* ã“ã“ã§ç”Ÿæˆã—ãŸã‚¿ã‚¤ãƒãƒ¼ã‚’åˆ©ç”¨ã—ã€TPIPã¨ã®é€šä¿¡ã€ç”»é¢ã®æç”»ã®ã‚¤ãƒ™ãƒ³ãƒˆã‚’ç™ºç”Ÿã—ã¾ã™
 *
-* @param[in]  hwnd            ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in]  lpCreateStruct  ƒEƒBƒ“ƒhƒEì¬‚Ìƒpƒ‰ƒ[ƒ^
+* @param[in]  hwnd            ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in]  lpCreateStruct  ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ä½œæˆæ™‚ã®ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿
 *
-* @retval í‚ÉTRUE
+* @retval å¸¸ã«TRUE
 *
 * @see http://msdn.microsoft.com/en-us/library/ms632619(VS.85).aspx
 *
 */
 BOOL onCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct) {
-	mOutDt.PWM[3] = 250;
-	//mOutDt.PWM[0] = 0;
-	//mOutDt.PWM[1] = 700;
-	//mOutDt.PWM[2] = 920;
-	TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
-	SetTimer(hwnd, ID_MYTIMER, 60, NULL);	// ƒ^ƒCƒ}[‚ğ¶¬‚·‚é
+	TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
+	SetTimer(hwnd, ID_MYTIMER, 60, NULL);	// ã‚¿ã‚¤ãƒãƒ¼ã‚’ç”Ÿæˆã™ã‚‹
 	initCtrlGUI();
-	return TRUE; //‚±‚±‚ğFALSE(0)‚É‚·‚é‚ÆƒƒbƒZ[ƒW‚ÅDestroy‚ªŒÄ‚Î‚ê‚é
+	return TRUE; //ã“ã“ã‚’FALSE(0)ã«ã™ã‚‹ã¨ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã§DestroyãŒå‘¼ã°ã‚Œã‚‹
 }
 
 
 /**
-* WM_ACTIVATE‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒEƒBƒ“ƒhƒE‚ªƒAƒNƒeƒBƒu/”ñƒAƒNƒeƒBƒu‚É‚È‚éÛ‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”
+* WM_ACTIVATEã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒã‚¢ã‚¯ãƒ†ã‚£ãƒ–/éã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã«ãªã‚‹éš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°
 *
-* @param[in] hwnd          ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in] state         ƒEƒBƒ“ƒhƒE‚ªƒAƒNƒeƒBƒu/”ñƒAƒNƒeƒBƒu‚©‚Ìó‘Ô
-* @param[in] hwndActDeact  ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹\n
-*                            state == 0‚Ìê‡‚ÍAV‚µ‚­ƒAƒNƒeƒBƒu‚É‚È‚Á‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹\n
-*                            state != 0‚Ìê‡‚ÍA‚»‚ê‚Ü‚ÅƒAƒNƒeƒBƒu‚Å‚ ‚Á‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in] fMinimized    ƒEƒBƒ“ƒhƒE‚ªÅ¬‰»‚³‚ê‚Ä‚¢‚é‚©‚Ì”»’èƒtƒ‰ƒO\n
-*                            0ˆÈŠO‚Ì’l‚Ìê‡‚ÍƒEƒBƒ“ƒhƒE‚ÍÅ¬‰»‚³‚ê‚Ä‚¢‚Ü‚·\n
-*                            0‚Ìê‡‚ÍƒEƒBƒ“ƒhƒE‚ÍÅ¬‰»‚³‚ê‚Ä‚¢‚Ü‚¹‚ñ\n
+* @param[in] hwnd          ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in] state         ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒã‚¢ã‚¯ãƒ†ã‚£ãƒ–/éã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã‹ã®çŠ¶æ…‹
+* @param[in] hwndActDeact  ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«\n
+*                            state == 0ã®å ´åˆã¯ã€æ–°ã—ãã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã«ãªã£ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«\n
+*                            state != 0ã®å ´åˆã¯ã€ãã‚Œã¾ã§ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã§ã‚ã£ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in] fMinimized    ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒæœ€å°åŒ–ã•ã‚Œã¦ã„ã‚‹ã‹ã®åˆ¤å®šãƒ•ãƒ©ã‚°\n
+*                            0ä»¥å¤–ã®å€¤ã®å ´åˆã¯ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã¯æœ€å°åŒ–ã•ã‚Œã¦ã„ã¾ã™\n
+*                            0ã®å ´åˆã¯ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã¯æœ€å°åŒ–ã•ã‚Œã¦ã„ã¾ã›ã‚“\n
 *
 * @see http://msdn.microsoft.com/ja-jp/library/ms646274(d=lightweight).aspx
 *
@@ -231,25 +225,25 @@ void onActivate(HWND hwnd, UINT state, HWND hwndActDeact, BOOL fMinimized) {
 
 
 /**
-* WM_CLOSE‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒEƒBƒ“ƒhƒE‚©ƒAƒvƒŠƒP[ƒVƒ‡ƒ“‚ªI—¹‚·‚éÛ‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”\n
-* I—¹‚ÌŠm”F‚ğs‚¢AYES‚È‚ç‚ÎƒEƒBƒ“ƒhƒE‚ğ”jŠü‚·‚éBNO‚È‚ç‚Î”jŠü‚µ‚È‚¢
+* WM_CLOSEã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‹ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ãŒçµ‚äº†ã™ã‚‹éš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°\n
+* çµ‚äº†ã®ç¢ºèªã‚’è¡Œã„ã€YESãªã‚‰ã°ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚’ç ´æ£„ã™ã‚‹ã€‚NOãªã‚‰ã°ç ´æ£„ã—ãªã„
 *
-* @param[in] hwnd  ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
+* @param[in] hwnd  ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
 *
 * @see http://msdn.microsoft.com/en-us/library/ms632617(VS.85).aspx
 *
 */
 void onClose(HWND hwnd) {
 
-	int ans = 0; // –ß‚è’læ“¾—p
+	int ans = 0; // æˆ»ã‚Šå€¤å–å¾—ç”¨
 
-	// ƒƒbƒZ[ƒWƒ_ƒCƒAƒƒO‚ğ•\¦‚µAI—¹‚ÌŠm”F‚ğ‚·‚é
-	ans = MessageBox(hwnd, TEXT("I—¹‚µ‚Ü‚·‚©H"), TEXT("I—¹Šm”F"), MB_YESNO | MB_ICONEXCLAMATION);
+	// ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ã‚’è¡¨ç¤ºã—ã€çµ‚äº†ã®ç¢ºèªã‚’ã™ã‚‹
+	ans = MessageBox(hwnd, TEXT("çµ‚äº†ã—ã¾ã™ã‹ï¼Ÿ"), TEXT("çµ‚äº†ç¢ºèª"), MB_YESNO | MB_ICONEXCLAMATION);
 
-	// YES‚ª‘I‘ğ‚³‚ê‚½ê‡‚ÍƒEƒBƒ“ƒhƒE‚ğ•Â‚¶‚é
+	// YESãŒé¸æŠã•ã‚ŒãŸå ´åˆã¯ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚’é–‰ã˜ã‚‹
 	if (ans == IDYES) {
-		DestroyWindow(hwnd); // ƒEƒCƒ“ƒhƒE‚ğ•Â‚¶‚éŠÖ”
+		DestroyWindow(hwnd); // ã‚¦ã‚¤ãƒ³ãƒ‰ã‚¦ã‚’é–‰ã˜ã‚‹é–¢æ•°
 	}
 
 	return;
@@ -258,23 +252,23 @@ void onClose(HWND hwnd) {
 
 
 /**
-* WM_DESTROY‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒEƒBƒ“ƒhƒE‚ª”jŠü‚³‚ê‚éÛ‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”\n
-* TPIPƒ‰ƒCƒuƒ‰ƒŠ‚Æ¶¬‚µ‚½ƒ^ƒCƒ}[‚Ì‰ğ•ú‚ğs‚¤
+* WM_DESTROYã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒç ´æ£„ã•ã‚Œã‚‹éš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°\n
+* TPIPãƒ©ã‚¤ãƒ–ãƒ©ãƒªã¨ç”Ÿæˆã—ãŸã‚¿ã‚¤ãƒãƒ¼ã®è§£æ”¾ã‚’è¡Œã†
 *
-* @param[in]  hwnd ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
+* @param[in]  hwnd ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
 *
 * @see http://msdn.microsoft.com/en-us/library/ms632620(VS.85).aspx
 *
 */
 void onDestroy(HWND hwnd) {
 
-	// TPIPƒ‰ƒCƒuƒ‰ƒŠŒQ‚Ì‰ğ•ú
+	// TPIPãƒ©ã‚¤ãƒ–ãƒ©ãƒªç¾¤ã®è§£æ”¾
 	TPGM_delete();
 	TPGC_close();
 	TPJT_close();
 
-	//ƒ^ƒCƒ}[‰ğ•ú
+	//ã‚¿ã‚¤ãƒãƒ¼è§£æ”¾
 	KillTimer(hwnd, ID_MYTIMER);
 	PostQuitMessage(0);
 
@@ -284,21 +278,21 @@ void onDestroy(HWND hwnd) {
 
 
 /**
-* WM_SIZE‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒEƒBƒ“ƒhƒE‚ÌƒTƒCƒY‚ª•ÏX‚³‚ê‚½Œã‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”\n
-* TPGM‚Åg—p‚µ‚Ä‚¢‚éƒT[ƒtƒFƒCƒX‚ğ•ÏXŒã‚ÌƒTƒCƒY‚Å\¬‚µ’¼‚·
+* WM_SIZEã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ã‚µã‚¤ã‚ºãŒå¤‰æ›´ã•ã‚ŒãŸå¾Œã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°\n
+* TPGMã§ä½¿ç”¨ã—ã¦ã„ã‚‹ã‚µãƒ¼ãƒ•ã‚§ã‚¤ã‚¹ã‚’å¤‰æ›´å¾Œã®ã‚µã‚¤ã‚ºã§æ§‹æˆã—ç›´ã™
 *
-* @param[in]  hwnd  ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in]  state ƒTƒCƒY•ÏX‚Ìƒ^ƒCƒv
-* @param[in]  cx    ƒEƒBƒ“ƒhƒE‚Ì‰¡•
-* @param[in]  cy    ƒEƒBƒ“ƒhƒE‚Ìc•
+* @param[in]  hwnd  ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in]  state ã‚µã‚¤ã‚ºå¤‰æ›´ã®ã‚¿ã‚¤ãƒ—
+* @param[in]  cx    ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®æ¨ªå¹…
+* @param[in]  cy    ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ç¸¦å¹…
 *
 * @see http://msdn.microsoft.com/en-us/library/ms632646(v=vs.85).aspx
 *
 */
 void onSize(HWND hwnd, UINT state, int cx, int cy) {
 
-	// ƒT[ƒtƒFƒCƒX‚ÌÄ\¬
+	// ã‚µãƒ¼ãƒ•ã‚§ã‚¤ã‚¹ã®å†æ§‹æˆ
 	TPGM_delete();
 	TPGM_create(hwnd, QVGA, NULL);
 
@@ -308,177 +302,178 @@ void onSize(HWND hwnd, UINT state, int cx, int cy) {
 
 
 /**
-* WM_TIMER‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒ^ƒCƒ}[‚ªI—¹‚µ‚½Û‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”\n
-* ƒQ[ƒ€ƒpƒbƒh‚©‚ç‚Ì“ü—ÍATPIP‚Æ‚Ì’ÊMA‰æ–Ê‚Ì•`5‰æ‚ÌƒCƒxƒ“ƒg‚ğ”­¶‚·‚é\n
-* §Œäƒf[ƒ^‚Ì‰ÁH“™‚ÍTPJT_set_ctrl()‚ğÀs‚·‚é‚Ü‚Å‚És‚¤‚±‚Æ
+* WM_TIMERã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¿ã‚¤ãƒãƒ¼ãŒçµ‚äº†ã—ãŸéš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°\n
+* ã‚²ãƒ¼ãƒ ãƒ‘ãƒƒãƒ‰ã‹ã‚‰ã®å…¥åŠ›ã€TPIPã¨ã®é€šä¿¡ã€ç”»é¢ã®æ5ç”»ã®ã‚¤ãƒ™ãƒ³ãƒˆã‚’ç™ºç”Ÿã™ã‚‹\n
+* åˆ¶å¾¡ãƒ‡ãƒ¼ã‚¿ã®åŠ å·¥ç­‰ã¯TPJT_set_ctrl()ã‚’å®Ÿè¡Œã™ã‚‹ã¾ã§ã«è¡Œã†ã“ã¨
 *
-* @param[in]  hwnd ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹1
-* @param[in]  id   ƒCƒxƒ“ƒg‚ğ‹N‚±‚µ‚½ƒ^ƒCƒ}[ID
+* @param[in]  hwnd ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in]  id   ã‚¤ãƒ™ãƒ³ãƒˆã‚’èµ·ã“ã—ãŸã‚¿ã‚¤ãƒãƒ¼ID
 *
 * @see http://msdn.microsoft.com/en-us/library/ms644902(VS.85).aspx
 *
 */
+
+//1,3å·æ©Ÿç”¨
+
 void onTimer(HWND hwnd, UINT id) {
-	if (id == ID_MYTIMER) {		// —\Šú‚µ‚È‚¢ƒ^ƒCƒ}[‚©‚ç‚ÌƒCƒxƒ“ƒg‚Í–³‹‚·‚é
+if (id == ID_MYTIMER) {		// äºˆæœŸã—ãªã„ã‚¿ã‚¤ãƒãƒ¼ã‹ã‚‰ã®ã‚¤ãƒ™ãƒ³ãƒˆã¯ç„¡è¦–ã™ã‚‹
 
-		TPGC_get(&mPad);		// ƒQ[ƒ€ƒpƒbƒh‚©‚ç‚Ì“ü—Í‚ğæ“¾
+TPGC_get(&mPad);		// ã‚²ãƒ¼ãƒ ãƒ‘ãƒƒãƒ‰ã‹ã‚‰ã®å…¥åŠ›ã‚’å–å¾—
 
-		TPJT_get_sens(&mInpDt, sizeof(mInpDt));	// ƒZƒ“ƒT“ü—Í‚ğæ“¾
+TPJT_get_sens(&mInpDt, sizeof(mInpDt));	// ã‚»ãƒ³ã‚µå…¥åŠ›ã‚’å–å¾—
 
-		//@comment GUIã‚ÌƒRƒ“ƒgƒ[ƒ‰•\¦‚ğ•ÏX
-		//switchButtons();
+//@comment GUIä¸Šã®ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©è¡¨ç¤ºã‚’å¤‰æ›´
+//switchButtons();
+}
 
-		// R‚Pƒ{ƒ^ƒ““ü—Í
-		if (mPad.Button[5] == 128){
-			flag2 += 1;
-			Sleep(300);
-			if (flag2 == 3){
-				flag2 = 0;
+		if (mPad.Button[2] == 128){
+			if (mOutDt.PWM[2] >= 850) mOutDt.PWM[2] = 850;	//ä¸Šé™ã«é”ã—ãŸã‚‰æœ€å°å€¤ã‚’è¨­å®š
+			else mOutDt.PWM[2] += 20;	// PWM[0]ã®å€¤ã‚’10åŠ ç®—
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
 			}
-		}
-		//@comment L‚Pƒ{ƒ^ƒ“‚ÅƒJƒƒ‰Ø‚è‘Ö‚¦
-		/*
-		if (mPad.Button[6] == 128){
-			if (cameraFlg){
-				TPJT_chg_camera(0);
-				cameraFlg = false;
-			}
-			else{
-				TPJT_chg_camera(1);
-				cameraFlg = true;
+		if (mPad.Button[1] == 128){
+			if (mOutDt.PWM[2] <= -850) mOutDt.PWM[2] = -850;	//ä¸Šé™ã«é”ã—ãŸã‚‰æœ€å°å€¤ã‚’è¨­å®š
+			else mOutDt.PWM[2] -= 20;	// PWM[0]ã®å€¤ã‚’10åŠ ç®—
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
 			}
 
-		}
-		*/
-		if (flag2 == 0){
-			if (mPad.Button[1] == 128){
-				if (mOutDt.PWM[0] >= 900) mOutDt.PWM[0] = 900;	//ãŒÀ‚É’B‚µ‚½‚çÅ¬’l‚ğİ’è
-				else mOutDt.PWM[0] += 20;	// PWM[0]‚Ì’l‚ğ10‰ÁZ
-				TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
+		if (mPad.Button[3] == 128){
+			if (mOutDt.PWM[1] >= 850) mOutDt.PWM[1] = 850;	//ä¸Šé™ã«é”ã—ãŸã‚‰æœ€å°å€¤ã‚’è¨­å®š
+			else mOutDt.PWM[1] += 20;	// PWM[0]ã®å€¤ã‚’10åŠ ç®—
+
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
 			}
-			if (mPad.Button[2] == 128){
-				if (mOutDt.PWM[0] <= -900) mOutDt.PWM[0] = -900;	//ãŒÀ‚É’B‚µ‚½‚çÅ¬’l‚ğİ’è
-				else mOutDt.PWM[0] -= 20;	// PWM[0]‚Ì’l‚ğ10‰ÁZ
-				TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
+		if (mPad.Button[0] == 128){
+			if (mOutDt.PWM[1] <= -850) mOutDt.PWM[1] = -850;	//ä¸‹é™ã«é”ã—ãŸã‚‰æœ€å°å€¤ã‚’è¨­å®š
+			else mOutDt.PWM[1] -= 20;	// PWM[0]ã®å€¤ã‚’10åŠ ç®—
+
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
 			}
-		}
-		if (flag2 == 1){
-			if (mPad.Button[1] == 128){
-				if (mOutDt.PWM[1] >= 900) mOutDt.PWM[1] = 900;	//ãŒÀ‚É’B‚µ‚½‚çÅ¬’l‚ğİ’è
-				else mOutDt.PWM[1] += 20;	// PWM[0]‚Ì’l‚ğ10‰ÁZ
 			
-				TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
-			}
-			if (mPad.Button[2] == 128){
-				if (mOutDt.PWM[1] <= -900) mOutDt.PWM[1] = -900;	//‰ºŒÀ‚É’B‚µ‚½‚çÅ¬’l‚ğİ’è
-				else mOutDt.PWM[1] -= 20;	// PWM[0]‚Ì’l‚ğ10‰ÁZ
 
-				TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
+			
+		if (mPad.Button[7] == 128){
+			mOutDt.PWM[0] += 40;	// PWM[0]ã®å€¤ã‚’10åŠ ç®—
+			if (mOutDt.PWM[0] >= 850) mOutDt.PWM[0] = 850;	//ä¸Šé™ã«é”ã—ãŸã‚‰æœ€å°å€¤ã‚’è¨­å®š
+
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
 			}
+		if (mPad.Button[5] == 128){
+			mOutDt.PWM[0] -= 40;	// PWM[0]ã®å€¤ã‚’10åŠ ç®—
+			if (mOutDt.PWM[0] <-850) mOutDt.PWM[0] = -850;	//ä¸Šé™ã«é”ã—ãŸã‚‰æœ€å°å€¤ã‚’è¨­å®š
+
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
+			}
+			
+
+		if (mPad.Button[6] == 128){
+			mOutDt.PWM[3] += 50;	// PWM[0]ã®å€¤ã‚’10åŠ ç®—
+			if (mOutDt.PWM[3] > 850) mOutDt.PWM[3] = 850;	//ä¸Šé™ã«é”ã—ãŸã‚‰æœ€å°å€¤ã‚’è¨­å®š
+
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
 		}
+		if (mPad.Button[4] == 128){
+			mOutDt.PWM[3] -= 50;	// PWM[0]ã®å€¤ã‚’10åŠ ç®—
+			if (mOutDt.PWM[3] < 0) mOutDt.PWM[3] = 0;	//ä¸Šé™ã«é”ã—ãŸã‚‰æœ€å°å€¤ã‚’è¨­å®š
 
-		if (flag2 == 2){
-			if (mPad.Button[1] == 128){
-				mOutDt.PWM[2] += 20;	// PWM[0]‚Ì’l‚ğ10‰ÁZ
-				if (mOutDt.PWM[2] > PWM_MAX) mOutDt.PWM[2] = PWM_MIN;	//ãŒÀ‚É’B‚µ‚½‚çÅ¬’l‚ğİ’è
 
-				TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
 			}
-			if (mPad.Button[2] == 128){
-				mOutDt.PWM[2] -= 20;	// PWM[0]‚Ì’l‚ğ10‰ÁZ
-				if (mOutDt.PWM[2] < PWM_MIN) mOutDt.PWM[2] = PWM_MAX;	//ãŒÀ‚É’B‚µ‚½‚çÅ¬’l‚ğİ’è
 
-				TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
-			}
-		}
 		
-			if (mPad.Button[4] == 128){
-				mOutDt.PWM[3] += 20;	// PWM[0]‚Ì’l‚ğ10‰ÁZ
-				if (mOutDt.PWM[3] > PWM_MAX) mOutDt.PWM[3] = PWM_MIN;	//ãŒÀ‚É’B‚µ‚½‚çÅ¬’l‚ğİ’è
+		if (mPad.Button[1] == 128){
+			mOutDt.PWM[3] += 20;	// PWM[0]ã®å€¤ã‚’10åŠ ç®—
+			if (mOutDt.PWM[3] > PWM_MAX) mOutDt.PWM[3] = PWM_MIN;	//ä¸Šé™ã«é”ã—ãŸã‚‰æœ€å°å€¤ã‚’è¨­å®š
 
-				TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
 			}
-			if (mPad.Button[6] == 128){
-				mOutDt.PWM[3] -= 20;	// PWM[0]‚Ì’l‚ğ10‰ÁZ
-				if (mOutDt.PWM[3] < PWM_MIN) mOutDt.PWM[3] = PWM_MAX;	//ãŒÀ‚É’B‚µ‚½‚çÅ¬’l‚ğİ’è
+		if (mPad.Button[2] == 128){
+			mOutDt.PWM[3] -= 20;	// PWM[0]ã®å€¤ã‚’10åŠ ç®—
+			if (mOutDt.PWM[3] < PWM_MIN) mOutDt.PWM[3] = PWM_MAX;	//ä¸Šé™ã«é”ã—ãŸã‚‰æœ€å°å€¤ã‚’è¨­å®š
 
-				TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
 			}
-		
-		/*
-		if (flag2 == 3){
-			if (mPad.Button[1] == 128){
-				mOutDt.PWM[3] += 20;	// PWM[0]‚Ì’l‚ğ10‰ÁZ
-				if (mOutDt.PWM[3] > PWM_MAX) mOutDt.PWM[3] = PWM_MIN;	//ãŒÀ‚É’B‚µ‚½‚çÅ¬’l‚ğİ’è
+			
 
-				TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
-			}
-			if (mPad.Button[2] == 128){
-				mOutDt.PWM[3] -= 20;	// PWM[0]‚Ì’l‚ğ10‰ÁZ
-				if (mOutDt.PWM[3] < PWM_MIN) mOutDt.PWM[3] = PWM_MAX;	//ãŒÀ‚É’B‚µ‚½‚çÅ¬’l‚ğİ’è
-
-				TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
-			}
-		}
-		*/
-		if (mPad.POV[0] == 0){    //ã‚ğ“ü—Í
+		if (mPad.POV[0] == 0){    //ä¸Šã‚’å…¥åŠ›
 			flag = 1;
-			mOutDt.d_out = 5;	// d_out‚ÌD1‚ÆD3‚É1o—Í
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
-		}
-		if (mPad.POV[0] == 18000){   //‰º‚ğ“ü—Í
+			mOutDt.d_out = 5;	// d_outã®D1ã¨D3ã«1å‡ºåŠ›
+			
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
+			}
+		if (mPad.POV[0] == 18000){   //ä¸‹ã‚’å…¥åŠ›
 			flag = 2;
-			mOutDt.d_out = 10;	// d_out‚ÌD2‚ÆD4‚É1o—Í
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
-		}
-		if (mPad.POV[0] == 27000){    //¶‚ğ“ü—Í
+			mOutDt.d_out = 10;	// d_outã®D2ã¨D4ã«1å‡ºåŠ›
+			
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
+			}
+		if (mPad.POV[0] == 27000){    //å·¦ã‚’å…¥åŠ›
 			flag = 3;
-			mOutDt.d_out = 9;	// d_out‚ÌD1‚ÆD4‚É1o—Í
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
-		}
-		if (mPad.POV[0] == 9000){    //‰E‚ğ“ü—Í
+			mOutDt.d_out = 9;	// d_out
+		
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
+			}
+		if (mPad.POV[0] == 9000){    //å³ã‚’å…¥åŠ›
 			flag = 4;
-			mOutDt.d_out = 6;	// d_out‚ÌD2‚ÆD3‚É1o—Í
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
-		}
+			
+			mOutDt.d_out = 6;	// d_outã®D2ã¨D3ã«1å‡ºåŠ›
+			
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
+			}
 		if (mPad.POV[0] == -1){
 			flag = 0;
 			mOutDt.d_out = 0;
 
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// §Œäo—Íƒf[ƒ^ƒZƒbƒg
-		}
-		/*
-		‰æ–Ê•`‰æXV‚ÌŠÄ‹ˆ—
-		ƒ^ƒCƒ}[ƒCƒxƒ“ƒgŠúŠÔ“à‚É‰æ–ÊXV‚ª–³‚©‚Á‚½ê‡WM_PAINTƒƒbƒZ[ƒW‚ğ‘—M‚ğs‚¤B
-		*/
-		if (hwnd != NULL) {		// ƒEƒBƒ“ƒhƒE‚ª¶¬‚³‚ê‚Ä‚¢‚é‚©H
-			if (updatePaint) {	// onPaint XVƒtƒ‰ƒO‚ª–¢XV‚©H
-				InvalidateRect(hwnd, NULL, FALSE);	// WM_PAINTƒƒbƒZ[ƒW‚ğ‘—M
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
 			}
-			updatePaint = 1;	//  onPaint XVƒtƒ‰ƒO‚ğRESET
+			//ç”»é¢æç”»æ›´æ–°ã®ç›£è¦–å‡¦ç†
+			//ã‚¿ã‚¤ãƒãƒ¼ã‚¤ãƒ™ãƒ³ãƒˆæœŸé–“å†…ã«ç”»é¢æ›´æ–°ãŒç„¡ã‹ã£ãŸå ´åˆWM_PAINTãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’é€ä¿¡ã‚’è¡Œã†ã€‚
+		
+
+/*------axitãƒ‡ãƒ¼ã‚¿ãƒ†ã‚¹ãƒˆ---------*/
+
+HDC hdc;
+		hdc = TPGM_getDC();
+		char msg1[40];
+		if (mPad.axis[1]){
+			//flag = 0;
+			//mOutDt.d_out = 0;
+
+			sprintf(msg1, "servo1 = %7d", mPad.axis[1]);
+			TextOut(hdc, 100, 800, (LPCSTR)msg1, lstrlen((LPCSTR)msg1));
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	// åˆ¶å¾¡å‡ºåŠ›ãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
+			TPGM_releaseDC();			// ãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆã‚’è§£æ”¾
+			TPGM_screen();				// ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ã¸æç”»
+
+			ValidateRect(hwnd, NULL);	// ç”»é¢æ›´æ–°ã‚’é©ç”¨ã™ã‚‹
+		
+		/*-------------------------*/
 		}
-	}
-
-
-
-	return;
+		if (hwnd != NULL) {		// ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒç”Ÿæˆã•ã‚Œã¦ã„ã‚‹ã‹ï¼Ÿ
+			if (updatePaint) {	// onPaint æ›´æ–°ãƒ•ãƒ©ã‚°ãŒæœªæ›´æ–°ã‹ï¼Ÿ
+			InvalidateRect(hwnd, NULL, FALSE);	// WM_PAINTãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’é€ä¿¡
+				}
+			updatePaint = 1;	//  onPaint æ›´æ–°ãƒ•ãƒ©ã‚°ã‚’RESET
+			}	
+			return;
 }
 
+		
 
 
 
 
 /**
-* WM_KEYDOWN‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒVƒXƒeƒ€ƒL[ˆÈŠO‚ÌƒL[‚ª‰Ÿ‚³‚ê‚½Û‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”\n
-* ƒVƒXƒeƒ€ƒL[‚Æ‚ÍAltƒL[‚ª‰Ÿ‚³‚ê‚Ä‚¢‚È‚¢ó‘Ô‚ÌƒL[‚Ì–‚ğŒ¾‚¤
+* WM_KEYDOWNã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚·ã‚¹ãƒ†ãƒ ã‚­ãƒ¼ä»¥å¤–ã®ã‚­ãƒ¼ãŒæŠ¼ã•ã‚ŒãŸéš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°\n
+* ã‚·ã‚¹ãƒ†ãƒ ã‚­ãƒ¼ã¨ã¯Altã‚­ãƒ¼ãŒæŠ¼ã•ã‚Œã¦ã„ãªã„çŠ¶æ…‹ã®ã‚­ãƒ¼ã®äº‹ã‚’è¨€ã†
 *
-* @param[in]  hwnd    ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in]  vk      ‰¼‘zƒL[ƒR[ƒh
-* @param[in]  fDown   í‚ÉTRUE
-* @param[in]  cRepeat ƒƒbƒZ[ƒW‚ÌƒŠƒs[ƒg‰ñ”
-* @param[in]  flags   lParam‚ÌHIWORD‚É’è‹`‚³‚ê‚Ä‚¢‚éƒtƒ‰ƒO
+* @param[in]  hwnd    ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in]  vk      ä»®æƒ³ã‚­ãƒ¼ã‚³ãƒ¼ãƒ‰
+* @param[in]  fDown   å¸¸ã«TRUE
+* @param[in]  cRepeat ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®ãƒªãƒ”ãƒ¼ãƒˆå›æ•°
+* @param[in]  flags   lParamã®HIWORDã«å®šç¾©ã•ã‚Œã¦ã„ã‚‹ãƒ•ãƒ©ã‚°
 *
 * @see http://msdn.microsoft.com/en-us/library/ms646280(VS.85).aspx
 *
@@ -486,9 +481,9 @@ void onTimer(HWND hwnd, UINT id) {
 void onKeydown(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags) {
 
 	switch (vk) {
-	case VK_ESCAPE: // ESCƒL[
+	case VK_ESCAPE: // ESCã‚­ãƒ¼
 	case VK_F12:    // F12
-		onClose(hwnd);	// ƒEƒCƒ“ƒhƒE‚ğ•Â‚¶‚éˆ—
+		onClose(hwnd);	// ã‚¦ã‚¤ãƒ³ãƒ‰ã‚¦ã‚’é–‰ã˜ã‚‹å‡¦ç†
 		return;
 	case VK_F1:
 		TPJT_chg_camera(0);
@@ -497,7 +492,7 @@ void onKeydown(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags) {
 		TPJT_chg_camera(1);
 		break;
 
-	default: // ’Êí
+	default: // é€šå¸¸
 		return;
 	}
 
@@ -507,15 +502,15 @@ void onKeydown(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags) {
 
 
 /**
-* WM_KEYUP‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒVƒXƒeƒ€ƒL[ˆÈŠO‚ÌƒL[‚ª—£‚³‚ê‚½Û‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”\n
-* ƒVƒXƒeƒ€ƒL[‚Æ‚ÍAltƒL[‚ª‰Ÿ‚³‚ê‚Ä‚¢‚È‚¢ó‘Ô‚ÌƒL[‚Ì–‚ğŒ¾‚¤
+* WM_KEYUPã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚·ã‚¹ãƒ†ãƒ ã‚­ãƒ¼ä»¥å¤–ã®ã‚­ãƒ¼ãŒé›¢ã•ã‚ŒãŸéš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°\n
+* ã‚·ã‚¹ãƒ†ãƒ ã‚­ãƒ¼ã¨ã¯Altã‚­ãƒ¼ãŒæŠ¼ã•ã‚Œã¦ã„ãªã„çŠ¶æ…‹ã®ã‚­ãƒ¼ã®äº‹ã‚’è¨€ã†
 *
-* @param[in]  hwnd    ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in]  vk      ‰¼‘zƒL[ƒR[ƒh
-* @param[in]  fDown   í‚ÉFALSE
-* @param[in]  cRepeat ƒƒbƒZ[ƒW‚ÌƒŠƒs[ƒg‰ñ”
-* @param[in]  flags   lParam‚ÌHIWORD‚É’è‹`‚³‚ê‚Ä‚¢‚éƒtƒ‰ƒO
+* @param[in]  hwnd    ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in]  vk      ä»®æƒ³ã‚­ãƒ¼ã‚³ãƒ¼ãƒ‰
+* @param[in]  fDown   å¸¸ã«FALSE
+* @param[in]  cRepeat ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®ãƒªãƒ”ãƒ¼ãƒˆå›æ•°
+* @param[in]  flags   lParamã®HIWORDã«å®šç¾©ã•ã‚Œã¦ã„ã‚‹ãƒ•ãƒ©ã‚°
 *
 * @see http://msdn.microsoft.com/en-us/library/ms646281(VS.85).aspx
 *
@@ -527,388 +522,198 @@ void onKeyup(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags) {
 
 
 /**
-* WM_PAINT‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒVƒXƒeƒ€A‚Ü‚½‚Í‘¼‚ÌƒAƒvƒŠƒP[ƒVƒ‡ƒ“‚©‚ç‰æ–Ê‚ÌXV—v‹‚ª‚ ‚Á‚½Û‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”\n
-* Jpegƒf[ƒ^‚Ìæo‚µA‰æ–Ê•`‰æ‚ğs‚¤
+* WM_PAINTã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚·ã‚¹ãƒ†ãƒ ã€ã¾ãŸã¯ä»–ã®ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ã‹ã‚‰ç”»é¢ã®æ›´æ–°è¦æ±‚ãŒã‚ã£ãŸéš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°\n
+* Jpegãƒ‡ãƒ¼ã‚¿ã®å–å‡ºã—ã€ç”»é¢æç”»ã‚’è¡Œã†
 *
-* @param[in]  hwnd  ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
+* @param[in]  hwnd  ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
 *
 * @see http://msdn.microsoft.com/en-us/library/dd145213(VS.85).aspx
 *
 */
 
 void onPaint(HWND hwnd) {
-	//DWORD nBegin = ::GetTickCount();
+
+	RECT src = { 0, 0, 640, 480 };
+	RECT dst = { 200, 40, 1700, 1200 };
+
+	HDC   hdc;       // ãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆ
 
 
+	//HDC hdc2 = CreateCompatibleDC(hdc);
 
+	//GetObject(hbmp, sizeof(bmp), &bmp);
+	//SelectObject(hdc2, hbmp);
+	//BitBlt(hdc2, posx, posy, bmp.bmWidth,bmp.bmHeight, hdc2,0,0,SRCCOPY);
 
-	static int img_sz = 0; //‰æ‘œæ‚è‚İƒTƒCƒY  
-	IplImage *tpipImage, *dst_img, *gray_img; //“ü—Í‰æ‘œƒoƒbƒtƒ@
-	HDC   hdc;       // ƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg
 	//RECT  dst, src = {0, 0, 640, 480};
-	void* mJpegData;  // JPEGƒf[ƒ^Ši”[•Ï”
-	int   mJpegSize;  // JPEGƒf[ƒ^ƒTƒCƒY
-	int connectId = TPJT_get_com_mode();
-	updatePaint = 1;			// onPaint XVƒtƒ‰ƒO‚ğXVÏ‚É
-	//OpenCV‚Ì‰æ‘œƒoƒbƒtƒ@‚Ì¶¬
-	tpipImage = cvCreateImage(cvSize(320, 300), IPL_DEPTH_8U, 3);
-	//tpipImageƒŠƒTƒCƒY—p‰æ‘œ
-	dst_img = cvCreateImage(cvSize(600, 600), IPL_DEPTH_8U, 3);
-	gray_img = cvCreateImage(cvSize(600, 600), IPL_DEPTH_8U, 1);
-	//Jpegƒf[ƒ^‚Ìæ‚èo‚µ
-	mJpegData = TPJT_get_jpeg_file(0, 0, &mJpegSize);	// JPEGƒf[ƒ^‚Ìæo‚µ
+	void* mJpegData;  // JPEGãƒ‡ãƒ¼ã‚¿æ ¼ç´å¤‰æ•°
+	int   mJpegSize;  // JPEGãƒ‡ãƒ¼ã‚¿ã‚µã‚¤ã‚º
+	int  img_sz;	  //ç”»åƒå–ã‚Šè¾¼ã¿ã‚µã‚¤ã‚º
+	IplImage *tpipImage, *resizeImage;  //å…¥åŠ›ç”»åƒãƒãƒƒãƒ•ã‚¡OpenCV
+	updatePaint = 1;			// onPaint æ›´æ–°ãƒ•ãƒ©ã‚°ã‚’æ›´æ–°æ¸ˆã«
+	//cvMat2HDC cvmat(tpipImage,hdc);
+	cv::Mat tpipImg, resizeImg;
+
+	//Jpegãƒ‡ãƒ¼ã‚¿ã®å–ã‚Šå‡ºã—
+	mJpegData = TPJT_get_jpeg_file(0, 0, &mJpegSize);	// JPEGãƒ‡ãƒ¼ã‚¿ã®å–å‡ºã—
+
+	tpipImage = cvCreateImage(cvSize(640, 480), IPL_DEPTH_8U, 3);
 
 
 
-	if ((mJpegData) && (mJpegSize > 0)) {	// JPEGƒf[ƒ^‚ª—L‚è‚Ìê‡
+	//resizeImage = cvCreateImage(cvSize((int)(tpipImage -> width * SCALE_X),(int)(tpipImage->height * SCALE_Y)),IPL_DEPTH_8U,3);
+	if ((mJpegData) && (mJpegSize > 0)) {	// JPEGãƒ‡ãƒ¼ã‚¿ãŒæœ‰ã‚Šã®å ´åˆ
 
 
-
-		img_sz = TPGM_JPEGbuffer2CV(mJpegData, mJpegSize, tpipImage);
-		cvResize(tpipImage, dst_img, CV_INTER_LINEAR);
-		cvCvtColor(dst_img, gray_img, CV_BGR2GRAY);
-		//cvThreshold(gray_img,gray_img,0,255,CV_THRESH_BINARY|CV_THRESH_OTSU);
-		cvAdaptiveThreshold(gray_img, gray_img, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 7, 8);
-		//img_sz = TPGM_JPEGbuffer2CV(mJpegData,mJpegSize,tpipImage);
-
-		cvNamedWindow("cv", CV_WINDOW_AUTOSIZE || CV_WINDOW_FREERATIO);
-		cvNamedWindow("cv_gray", CV_WINDOW_AUTOSIZE || CV_WINDOW_FREERATIO);
-		//cvShowImage("cv",tpipImage);
-		cvShowImage("cv", dst_img);
-		cvShowImage("cv_gray", gray_img);
-
-
-		TPGM_decode(mJpegData, mJpegSize);	// JPEGƒf[ƒ^‚ğƒJƒƒ‰‰æ‘œ‚ÉƒfƒR[ƒh‚·‚é
+		TPGM_decode(mJpegData, mJpegSize);	// JPEGãƒ‡ãƒ¼ã‚¿ã‚’ã‚«ãƒ¡ãƒ©ç”»åƒã«ãƒ‡ã‚³ãƒ¼ãƒ‰ã™ã‚‹
 	}
-	TPJT_free_jpeg_file();					// JPEGƒf[ƒ^‚Ì‰ğ•ú
-	cvReleaseImage(&tpipImage);
-	cvReleaseImage(&dst_img);
-	cvReleaseImage(&gray_img);
+	TPJT_free_jpeg_file();					// JPEGãƒ‡ãƒ¼ã‚¿ã®è§£æ”¾
+	//ç”»åƒãƒ‡ãƒ¼ã‚¿ã®è§£æ”¾
+	cvReleaseImage(&tpipImage);				//Opencvç”»åƒãƒ‡ãƒ¼ã‚¿ã®è§£æ”¾
+	//cvReleaseImage(&resizeImage);			//ãƒ‡ãƒ¼ã‚¿ã‚’ä½¿ã£ã¦ã„ãªã„ã¨ãã«ä½¿ç”¨ã™ã‚‹ã¨
+	//ä¾‹å¤–æ‰±ã„ã•ã‚Œã‚‹
 
-	TPGM_copy(0, 0);			// ƒEƒBƒ“ƒhƒEÀ•W(0,0)ˆÊ’u‚ÉŒÅ’èƒTƒCƒY(480x640)‚ÅƒJƒƒ‰‰f‘œ‚ğ•`‰æ‚·‚é 
-	//TPGM_copy2(&src, &dst);	// ƒTƒCƒY‚ğ•ÏX‚µ‚ÄƒJƒƒ‰‰f‘œ‚ğ•`‰æ‚·‚é‚Ég—p‚·‚éB
+	//TPGM_copy(0, 0);			// ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦åº§æ¨™(0,0)ä½ç½®ã«å›ºå®šã‚µã‚¤ã‚º(480x640)ã§ã‚«ãƒ¡ãƒ©æ˜ åƒã‚’æç”»ã™ã‚‹
+	TPGM_copy2(&src, &dst);	// ã‚µã‚¤ã‚ºã‚’å¤‰æ›´ã—ã¦ã‚«ãƒ¡ãƒ©æ˜ åƒã‚’æç”»ã™ã‚‹æ™‚ã«ä½¿ç”¨ã™ã‚‹ã€‚
 
-	hdc = TPGM_getDC();			// ƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg‚ğæ“¾‚·‚é
-
+	hdc = TPGM_getDC();			// ãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆã‚’å–å¾—ã™ã‚‹
 	//TPJT_set_video_inf(QVGA);
 	//TPJT_init("192.168.2.101", hwnd);
 	//TPJT_set_com_req(0x03, 0);
 
-	static int img_sz2 = 0; //‰æ‘œæ‚è‚İƒTƒCƒY
+	static int img_sz2 = 0; //ç”»åƒå–ã‚Šè¾¼ã¿ã‚µã‚¤ã‚º
 	IplImage *tpipImage2;
-	HDC   hdc2;       // ƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg
+	HDC   hdc2;       // ãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆ
 	//RECT  dst, src = {0, 0, 640, 480};
-	void* mJpegData2 = NULL;  // JPEGƒf[ƒ^Ši”[•Ï”
-	//mJpegData2 = malloc(sizeof(mJpegData2));
-	int   mJpegSize2;  // JPEGƒf[ƒ^ƒTƒCƒY
+	void* mJpegData2;  // JPEGãƒ‡ãƒ¼ã‚¿æ ¼ç´å¤‰æ•°
+	int   mJpegSize2;  // JPEGãƒ‡ãƒ¼ã‚¿ã‚µã‚¤ã‚º
 	int connectId2 = TPJT_get_com_mode();
 	static char send_buf[1024];
 	static char recv_buf[1024];
 	w32udp* com = NULL;
 	int err;
-	cv::VideoCapture cap(0);
-	static const int sedSize = 65500;
-	std::vector<uchar> ibuf;
-	std::vector<int> param = std::vector<int>(2);
-	param[0] = CV_IMWRITE_JPEG_QUALITY;
-	param[1] = 85;
+	char m[40], m2[40];
+	com = new w32udp("UDP_S");
 
+	err = com->open("127.0.0.1", 9000,-1);
+	//com->re
+	//err = com->open("192.168.2.103", 9000, 2 * 100);
 
-	//int jpeg_size = TPJT_get_jpeg(mJpegData2,sizeof(J));	// JPEGƒf[ƒ^‚Ìæo‚µ
+	//char* ip = "192.168.2.103";
 
-	//if ((mJpegData2) && (mJpegSize2 > 0)){
-
-		char mk[40];
-		//sprintf(mk, "1234 = %d", jpeg_size);
-		//TextOut(hdc, 200, 900, (LPCSTR)mk, lstrlen((LPCSTR)mk));
-	//}
-	cv::Mat image = cv::Mat(600,600,CV_8UC3);
-	cv::Mat frame;
-	com = new w32udp("UDP_C");
-	err = com->open("127.0.0.1", 9000, 2 * 1000);
-	//err = com->open("192.168.2.101", 9000, 2 * 100);
-	char m[40],m2[40];
-	char* ip = "192.168.2.101";
-	sprintf(m2, "send_to = %d",err );
-	TextOut(hdc, 800, 900, (LPCSTR)m2, lstrlen((LPCSTR)m2));
-
+	sprintf(m,"send_to = %d",err);
+	TextOut(hdc,800,900,(LPCSTR)m,lstrlen((LPCSTR)m));
+	
 	int snd_cnt, rcv_cnt;
 
-	snd_cnt = com->send(send_buf, sizeof(send_buf));
+	//snd_cnt = com->send(send_buf, sizeof(send_buf));
 
-
-	//Jpegƒf[ƒ^‚Ìæ‚èo‚µ
-	//mJpegData2 = TPJT_get_jpeg_file(0, 0, &mJpegSize2);	// JPEGƒf[ƒ^‚Ìæo‚µ
-	//rcv_cnt = com->recv(recv_buf, sizeof(recv_buf));
-	/*
-	while (cvWaitKey(1) == -1){
-		cap >> frame;
-		cv::imencode(".jpeg",frame,send_buf,param);
-	}*/
-
-	if (snd_cnt != 0){
-		LPSTR lpt2;
-		char ms[100],ms2[100],msc[10];
-		lpt2 = TEXT("óM");
-		TextOut(hdc, 800, 600, lpt2, lstrlen(lpt2));	// •¶š•\¦
-		sprintf(ms, "sed = %d",snd_cnt);
-		TextOut(hdc, 800, 500, (LPCSTR)ms, lstrlen((LPCSTR)ms));
-		//while (cvWaitKey(10) == -1){
-
-			for (int i = 0; i < sizeof(recv_buf); i++){
-
-				//sprintf(ms2, "recv = %d", (uchar)recv_buf[i]);
-				//TextOut(hdc, 1000, 500, (LPCSTR)ms2, lstrlen((LPCSTR)ms2));
-				//ibuf.push_back((uchar)recv_buf[i]);
-			}
-			//sprintf(ms2, "recv = %d", ibuf[0]);
-			//TextOut(hdc, 1000, 500, (LPCSTR)ms2, lstrlen((LPCSTR)ms2));
-			//image = cv::imdecode(cv::Mat(ibuf), CV_LOAD_IMAGE_COLOR);
-			//cv::imshow("Recive", image);
-			ibuf.clear();
-		//}
+	rcv_cnt = com->recv(recv_buf, sizeof(recv_buf));
 	
-	}
 
-	/*
-
-	if ((mJpegData2) && (mJpegSize2 > 0)) {	// JPEGƒf[ƒ^‚ª—L‚è‚Ìê‡
-	TPGM_decode(mJpegData2, mJpegSize2);	// JPEGƒf[ƒ^‚ğƒJƒƒ‰‰æ‘œ‚ÉƒfƒR[ƒh‚·‚é
-	}
-	TPJT_free_jpeg_file();					// JPEGƒf[ƒ^‚Ì‰ğ•ú
-
-	TPGM_copy(400, 600);			// ƒEƒBƒ“ƒhƒEÀ•W(0,0)ˆÊ’u‚ÉŒÅ’èƒTƒCƒY(480x640)‚ÅƒJƒƒ‰‰f‘œ‚ğ•`‰æ‚·‚é
-	//TPGM_copy2(&src, &dst);	// ƒTƒCƒY‚ğ•ÏX‚µ‚ÄƒJƒƒ‰‰f‘œ‚ğ•`‰æ‚·‚é‚Ég—p‚·‚éB
-	*/
-	//free(mJpegData2);
+	sprintf(m2, "rcv = %d", recv_buf);
+	TextOut(hdc, 700, 900, (LPCSTR)m2, lstrlen((LPCSTR)m2));
 	com->close();
 	delete com;
-	
-	/*
-
-	//udpƒvƒƒOƒ‰ƒ€
-	char destination[80] = "192.168.2.101";
-	unsigned short port = 9876;
-	int destSocket;
-
-	struct sockaddr_in destSockAddr;
-
-	int i;
-	char *toSendText = "This is a test";
-
-	WSADATA data;
-	WSAStartup(MAKEWORD(2, 0), &data);
-
-	printf("Connect to? : (name or IP address) ");
-	//scanf("%s", destination);
-	//destination = "192.168.2.101";
-	// soclkaddr_in \‘¢‘Ì‚ÌƒZƒbƒg 
-	memset(&destSockAddr, 0, sizeof(destSockAddr));
-	destSockAddr.sin_addr.S_un.S_addr = inet_addr(destination);
-	destSockAddr.sin_port = htons(port);
-	destSockAddr.sin_family = AF_INET;
-
-	destSocket = socket(AF_INET, SOCK_DGRAM, 0);
-
-	//CvCapture *videoCapture = cvCreateCameraCapture(1);
-	//if (videoCapture == NULL)
-	//{
-		//return -1;
-	//}
-
-	char windowname[] = "camera";
-	cvNamedWindow(windowname, CV_WINDOW_AUTOSIZE);
-	cv::Mat Mimg;
-	cv::Mat jpgimg;
-
-	static const int sendSize = 65500;
-	char buff[sendSize];
 
 
-	std::vector<unsigned char> ibuff;
-	std::vector<int> param = std::vector<int>(2);
-	param[0] = CV_IMWRITE_JPEG_QUALITY;
-	param[1] = 85;
-	int Num;
-	while (cvWaitKey(1) == -1)
-	{
-		IplImage *image = cvQueryFrame(videoCapture);
-		Mimg = image;
-		Num = (Mimg.rows*Mimg.step) / sendSize;
-		imencode(".jpg", Mimg, ibuff, param);
-		std::cout << "coded file size(jpg)" << ibuff.size() << std::endl;
-		if (ibuff.size() < sendSize){
-			for (int i = 0; i<ibuff.size(); i++)
-			{
-				buff[i] = ibuff[i];
-			}
-			sendto(destSocket, buff, sendSize, 0, (LPSOCKADDR)&destSockAddr, sizeof(destSockAddr));
-			jpgimg = cv::imdecode(cv::Mat(ibuff), CV_LOAD_IMAGE_COLOR);
-			cv::imshow(windowname, jpgimg);
-		}
-		ibuff.clear();
-	}
 
 
-	cvReleaseCapture(&videoCapture);
+char msg[40],msg1[40],msg2[40],msg3[40],msg4[40],msg5[40];	// æ–‡å­—åˆ—æ ¼ç´å¤‰æ•°å®šç¾©
+LPTSTR lpt = NULL;
+SetBkColor(hdc, RGB(0, 0, 0));				// æ–‡å­—èƒŒæ™¯è‰²æŒ‡å®š
+SetTextColor(hdc, RGB(255, 255, 255));		// æ–‡å­—è‰²æŒ‡å®šï¼ˆç™½ï¼‰
 
-	cvDestroyWindow(windowname);
+if (flag == 1){
+lpt = TEXT("å‰é€²");
+TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// æ–‡å­—è¡¨ç¤º
+}
+if (flag == 2){
+lpt = TEXT("å¾Œé€€");
+TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// æ–‡å­—è¡¨ç¤º
+}
 
-	closesocket(destSocket);
-	WSACleanup();
-
-
-//////////////////////////////////////////////
-	*/
-
-
-	char msg[40],msg1[40],msg2[40],msg3[40],msg4[40],wifi[40],connect[40];	// •¶š—ñŠi”[•Ï”’è‹`
-	LPTSTR lpt = NULL;
-	SetBkColor(hdc, RGB(0, 0, 0));				// •¶š”wŒiFw’è
-	SetTextColor(hdc, RGB(255, 255, 255));		// •¶šFw’èi”’j
-
-	//////////////////////////////////////////////////////////////
-	//@comment  ƒ‚[ƒ^‚Ìó‘Ô‚ğ•\¦
-	//
-	//////////////////////////////////////////////////////////////
-
-
-	if (flag == 1){
-		lpt = TEXT("‘Oi");
-		TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// •¶š•\¦
-	}
-	if (flag == 2){
-		lpt = TEXT("Œã‘Ş");
-		TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// •¶š•\¦
-	}
-
-	if (flag == 3){
-		lpt = TEXT("¶i");
-		TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// •¶š•\¦
-	}
-	if (flag == 4){
-		lpt = TEXT("‰Ei");
-		TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// •¶š•\¦
-	}
-	if (flag == 0){
-		lpt = TEXT("’â~");
-		TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// •¶š•\¦
-	}
+if (flag == 3){
+lpt = TEXT("å·¦é€²");
+TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// æ–‡å­—è¡¨ç¤º
+}
+if (flag == 4){
+lpt = TEXT("å³é€²");
+TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// æ–‡å­—è¡¨ç¤º
+}
+if (flag == 0){
+lpt = TEXT("åœæ­¢");
+TextOut(hdc, 100, 600, lpt, lstrlen(lpt));	// æ–‡å­—è¡¨ç¤º
+}
 
 
-	////////////////////////////////////////////////////////////////////
-	//@comment@ƒvƒƒOƒ‰ƒ€‹N“®‚©‚ç‚ÌŒo‰ßŠÔ‚ğ•\¦
-	//
-	////////////////////////////////////////////////////////////////////
-	sprintf(msg, "Timer %3d. ", ((GetTickCount() - nBegin) / 1000) / 60);
-	TextOut(hdc, 685, 450, (LPCSTR)msg, lstrlen((LPCSTR)msg));
-	sprintf(msg, "%3d. ",  ((GetTickCount()- nBegin)/1000)%60);
-	TextOut(hdc, 750, 450, (LPCSTR)msg, lstrlen((LPCSTR)msg));
-	sprintf(msg, "%d", (GetTickCount64() - nBegin) % 1000);
-	TextOut(hdc, 780, 450, (LPCSTR)msg, lstrlen((LPCSTR)msg));
-	
+sprintf(msg1,"servo1 = %7d",mOutDt.PWM[0]);
+TextOut(hdc, 100, 500, (LPCSTR)msg1, lstrlen((LPCSTR)msg1));
+sprintf(msg2,"servo2 = %7d", mOutDt.PWM[1]);
+TextOut(hdc, 350, 500, (LPCSTR)msg2, lstrlen((LPCSTR)msg2));
+sprintf(msg3,"servo3 = %7d", mOutDt.PWM[2]);
+TextOut(hdc, 600, 500, msg3, lstrlen(msg3));
+sprintf(msg4, "motor PWM = %7d", mOutDt.PWM[3]);
+TextOut(hdc, 350, 450, msg4, lstrlen(msg4));
 
 
-	////////////////////////////////////////////////////////////////////
-	//@comment@ŠeƒT[ƒ{‚Ì’l‚ğ•\¦
-	//
-	////////////////////////////////////////////////////////////////////
-	sprintf(msg1,"servo1 = %7d",mOutDt.PWM[0]);
-	TextOut(hdc, 100, 500, (LPCSTR)msg1, lstrlen((LPCSTR)msg1));
-	sprintf(msg2,"servo2 = %7d", mOutDt.PWM[1]);
-	TextOut(hdc, 350, 500, (LPCSTR)msg2, lstrlen((LPCSTR)msg2));
-	sprintf(msg3,"servo3 = %7d", mOutDt.PWM[2]);
-	TextOut(hdc, 600, 500, msg3, lstrlen(msg3));
-	sprintf(msg4, "motor PWM = %7d", mOutDt.PWM[3]);
-	TextOut(hdc, 350, 450, msg4, lstrlen(msg4));
 
+TPGM_releaseDC();			// ãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆã‚’è§£æ”¾
+TPGM_screen();				// ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ã¸æç”»
 
-	//////////////////////////////////////////////////////////////////////
-	//@comment WiFi‚Ì“d”g‹­“x‚ğ•\¦
-	//
-	//////////////////////////////////////////////////////////////////////
-	sprintf(wifi, "WiFi = %d", TPJT_Get_Wlink());
-	TextOut(hdc, 1800, 200, (LPCSTR)wifi, lstrlen((LPCSTR)wifi));
+ValidateRect(hwnd, NULL);	// ç”»é¢æ›´æ–°ã‚’é©ç”¨ã™ã‚‹
 
-
-	////////////////////////////////////////////////////////////////////
-	//@comment “®‰æ“`‘—‚Ì’ÊMó‘ÔIDæ‚èo‚µ
-	//
-	////////////////////////////////////////////////////////////////////
-	sprintf(connect, "connect = %d", connectId);
-	TextOut(hdc, 1600, 300, (LPCSTR)connect, lstrlen((LPCSTR)connect));
-
-
-	TPGM_releaseDC();			// ƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg‚ğ‰ğ•ú
-	TPGM_screen();				// ƒXƒNƒŠ[ƒ“‚Ö•`‰æ
-
-	ValidateRect(hwnd, NULL);	// ‰æ–ÊXV‚ğ“K—p‚·‚é
-
-	return;
+return;
 }
 
 
 /**
-* WM_LBUTTONDOWN‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒEƒBƒ“ƒhƒE“à‚Åƒ}ƒEƒX‚Ì¶ƒ{ƒ^ƒ“‚ğ‰Ÿ‚µ‚ñ‚¾Û‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”
+* WM_LBUTTONDOWNã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦å†…ã§ãƒã‚¦ã‚¹ã®å·¦ãƒœã‚¿ãƒ³ã‚’æŠ¼ã—è¾¼ã‚“ã éš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°
 *
-* @param[in]  hwnd          ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in]  fDoubleClick  í‚ÉFALSE
-* @param[in]  x             ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌXÀ•W
-* @param[in]  y             ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌYÀ•W
-* @param[in]  keyFlags      ‰Ÿ‚³‚ê‚Ä‚¢‚é‰¼‘zƒL[‚Ìƒtƒ‰ƒO
+* @param[in]  hwnd          ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in]  fDoubleClick  å¸¸ã«FALSE
+* @param[in]  x             ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Xåº§æ¨™
+* @param[in]  y             ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Yåº§æ¨™
+* @param[in]  keyFlags      æŠ¼ã•ã‚Œã¦ã„ã‚‹ä»®æƒ³ã‚­ãƒ¼ã®ãƒ•ãƒ©ã‚°
 *
 * @see http://msdn.microsoft.com/en-us/library/ms645607(VS.85).aspx
 *
 */
-
 void onLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags) {
-	start = GetTickCount64();
+	return;
 }
 
 
 
-
-
 /**
-* WM_LBUTTONUP‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒEƒBƒ“ƒhƒE“à‚Åƒ}ƒEƒX‚Ì¶ƒ{ƒ^ƒ“‚ğ—£‚µ‚½Û‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”
+* WM_LBUTTONUPã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦å†…ã§ãƒã‚¦ã‚¹ã®å·¦ãƒœã‚¿ãƒ³ã‚’é›¢ã—ãŸéš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°
 *
-* @param[in]  hwnd      ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in]  x         ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌXÀ•W
-* @param[in]  y         ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌYÀ•W
-* @param[in]  keyFlags  ‰Ÿ‚³‚ê‚Ä‚¢‚é‰¼‘zƒL[‚Ìƒtƒ‰ƒO
+* @param[in]  hwnd      ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in]  x         ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Xåº§æ¨™
+* @param[in]  y         ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Yåº§æ¨™
+* @param[in]  keyFlags  æŠ¼ã•ã‚Œã¦ã„ã‚‹ä»®æƒ³ã‚­ãƒ¼ã®ãƒ•ãƒ©ã‚°
 *
 * @see http://msdn.microsoft.com/en-us/library/ms645608(VS.85).aspx
 *
 */
 void onLButtonUp(HWND hwnd, int x, int y, UINT keyFlags) {
-	end = GetTickCount();
-
-	HDC hdc;
-
-	hdc = TPGM_getDC();
-	char msg[40];
-	
-	sprintf(msg, "Get Time %3d. ", (end-start)/1000);
-	TextOut(hdc, 750, 700, (LPCSTR)msg, lstrlen((LPCSTR)msg));
-	sprintf(msg, "%2d", end - start);
-	TextOut(hdc, 840, 700, (LPCSTR)msg, lstrlen((LPCSTR)msg));
 	return;
 }
 
 
 
 /**
-* WM_LBUTTONDBLCLK‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒEƒBƒ“ƒhƒE“à‚Åƒ}ƒEƒX‚Ì¶ƒ{ƒ^ƒ“‚ğƒ_ƒuƒ‹ƒNƒŠƒbƒN‚µ‚½Û‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”
+* WM_LBUTTONDBLCLKã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦å†…ã§ãƒã‚¦ã‚¹ã®å·¦ãƒœã‚¿ãƒ³ã‚’ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã—ãŸéš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°
 *
-* @param[in]  hwnd          ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in]  fDoubleClick  í‚ÉTRUE
-* @param[in]  x             ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌXÀ•W
-* @param[in]  y             ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌYÀ•W
-* @param[in]  keyFlags      ‰Ÿ‚³‚ê‚Ä‚¢‚é‰¼‘zƒL[‚Ìƒtƒ‰ƒO
+* @param[in]  hwnd          ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in]  fDoubleClick  å¸¸ã«TRUE
+* @param[in]  x             ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Xåº§æ¨™
+* @param[in]  y             ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Yåº§æ¨™
+* @param[in]  keyFlags      æŠ¼ã•ã‚Œã¦ã„ã‚‹ä»®æƒ³ã‚­ãƒ¼ã®ãƒ•ãƒ©ã‚°
 *
 * @see http://msdn.microsoft.com/en-us/library/ms645606(VS.85).aspx
 *
@@ -920,33 +725,32 @@ void onLButtonDblClk(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags) 
 
 
 /**
-* WM_LBUTTONDOWN‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒEƒBƒ“ƒhƒE“à‚Åƒ}ƒEƒX‚Ì‰Eƒ{ƒ^ƒ“‚ğ‰Ÿ‚µ‚ñ‚¾Û‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”
+* WM_LBUTTONDOWNã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦å†…ã§ãƒã‚¦ã‚¹ã®å³ãƒœã‚¿ãƒ³ã‚’æŠ¼ã—è¾¼ã‚“ã éš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°
 *
-* @param[in]  hwnd          ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in]  fDoubleClick  í‚ÉFALSE
-* @param[in]  x             ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌXÀ•W
-* @param[in]  y             ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌYÀ•W
-* @param[in]  keyFlags      ‰Ÿ‚³‚ê‚Ä‚¢‚é‰¼‘zƒL[‚Ìƒtƒ‰ƒO
+* @param[in]  hwnd          ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in]  fDoubleClick  å¸¸ã«FALSE
+* @param[in]  x             ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Xåº§æ¨™
+* @param[in]  y             ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Yåº§æ¨™
+* @param[in]  keyFlags      æŠ¼ã•ã‚Œã¦ã„ã‚‹ä»®æƒ³ã‚­ãƒ¼ã®ãƒ•ãƒ©ã‚°
 *
 * @see http://msdn.microsoft.com/en-us/library/ms646242(VS.85).aspx
 *
 */
 void onRButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags) {
-
 	return;
 }
 
 
 
 /**
-* WM_RBUTTONUP‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒEƒBƒ“ƒhƒE“à‚Åƒ}ƒEƒX‚Ì‰Eƒ{ƒ^ƒ“‚ğ—£‚µ‚½Û‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”
+* WM_RBUTTONUPã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦å†…ã§ãƒã‚¦ã‚¹ã®å³ãƒœã‚¿ãƒ³ã‚’é›¢ã—ãŸéš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°
 *
-* @param[in]  hwnd      ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in]  x         ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌXÀ•W
-* @param[in]  y         ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌYÀ•W
-* @param[in]  keyFlags  ‰Ÿ‚³‚ê‚Ä‚¢‚é‰¼‘zƒL[‚Ìƒtƒ‰ƒO
+* @param[in]  hwnd      ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in]  x         ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Xåº§æ¨™
+* @param[in]  y         ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Yåº§æ¨™
+* @param[in]  keyFlags  æŠ¼ã•ã‚Œã¦ã„ã‚‹ä»®æƒ³ã‚­ãƒ¼ã®ãƒ•ãƒ©ã‚°
 *
 * @see http://msdn.microsoft.com/en-us/library/ms646243(VS.85).aspx
 *
@@ -958,14 +762,14 @@ void onRButtonUp(HWND hwnd, int x, int y, UINT keyFlags) {
 
 
 /**
-* WM_RBUTTONDOWN‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒEƒBƒ“ƒhƒE“à‚Åƒ}ƒEƒX‚Ì‰Eƒ{ƒ^ƒ“‚ğƒ_ƒuƒ‹ƒNƒŠƒbƒN‚µ‚½Û‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”
+* WM_RBUTTONDOWNã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦å†…ã§ãƒã‚¦ã‚¹ã®å³ãƒœã‚¿ãƒ³ã‚’ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã—ãŸéš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°
 *
-* @param[in]  hwnd          ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in]  fDoubleClick  í‚ÉTRUE
-* @param[in]  x             ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌXÀ•W
-* @param[in]  y             ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌYÀ•W
-* @param[in]  keyFlags      ‰Ÿ‚³‚ê‚Ä‚¢‚é‰¼‘zƒL[‚Ìƒtƒ‰ƒO
+* @param[in]  hwnd          ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in]  fDoubleClick  å¸¸ã«TRUE
+* @param[in]  x             ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Xåº§æ¨™
+* @param[in]  y             ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Yåº§æ¨™
+* @param[in]  keyFlags      æŠ¼ã•ã‚Œã¦ã„ã‚‹ä»®æƒ³ã‚­ãƒ¼ã®ãƒ•ãƒ©ã‚°
 *
 * @see http://msdn.microsoft.com/en-us/library/ms646241(VS.85).aspx
 *
@@ -977,13 +781,13 @@ void onRButtonDblClk(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags) 
 
 
 /**
-* WM_MOUSEMOVE‚ÌƒƒbƒZ[ƒWƒNƒ‰ƒbƒJ[\n
-* ƒEƒBƒ“ƒhƒE“à‚Åƒ}ƒEƒX‚ª“®‚¢‚½Û‚ÉƒR[ƒ‹‚³‚ê‚éŠÖ”
+* WM_MOUSEMOVEã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¯ãƒ©ãƒƒã‚«ãƒ¼\n
+* ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦å†…ã§ãƒã‚¦ã‚¹ãŒå‹•ã„ãŸéš›ã«ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹é–¢æ•°
 *
-* @param[in]  hwnd      ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-* @param[in]  x         ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌXÀ•W
-* @param[in]  y         ƒCƒxƒ“ƒg‚ª”­¶‚µ‚½Û‚Ìƒ}ƒEƒX‚ÌYÀ•W
-* @param[in]  keyFlags  ‰Ÿ‚³‚ê‚Ä‚¢‚é‰¼‘zƒL[‚Ìƒtƒ‰ƒO
+* @param[in]  hwnd      ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+* @param[in]  x         ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Xåº§æ¨™
+* @param[in]  y         ã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã—ãŸéš›ã®ãƒã‚¦ã‚¹ã®Yåº§æ¨™
+* @param[in]  keyFlags  æŠ¼ã•ã‚Œã¦ã„ã‚‹ä»®æƒ³ã‚­ãƒ¼ã®ãƒ•ãƒ©ã‚°
 *
 * @see http://msdn.microsoft.com/en-us/library/ms645616(VS.85).aspx
 *
@@ -991,6 +795,4 @@ void onRButtonDblClk(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags) 
 void onMouseMove(HWND hwnd, int x, int y, UINT keyFlags) {
 	return;
 }
-
-
 
