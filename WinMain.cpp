@@ -1,29 +1,10 @@
-/**
-* @file WinMain.cpp
-* @brief WIN32 APIを利用したプログラムのエントリーポイント用モジュール
-* @author Iwata Naoki -> Y.Katayama
-* @date 2011-03-19
-* @version 1.00
-* @version 1.01 2013/03/21 katayama
-*
-* Copyright (C) 2008 TPIP User Community All rights reserved.
-* このファイルの著作権は、TPIPユーザーコミュニティの規約に従い使用許諾をします。
-*/
-
-/** \mainpage
-* 2015年講習会サンプル
-*/
-
 
 /*--------- 定数定義 ---------*/
 
-#define TITLE         ("Robot_3")    //!< @brief アプリケーションのタイトル
+#define TITLE         ("Robot_1")    //!< @brief アプリケーションのタイトル
 #define WINDOW_WIDTH  (1200)                    //!< @brief ウィンドウの横幅
 #define WINDOW_HEIGHT ( 650)                    //!< @brief ウィンドウの縦幅
-//#define IP            ("192.168.2.101")         //!< @brief 通信するTPIPのIPアドレス
-//#define IP            ("192.168.2.102")		//2号機
-#define IP            ("192.168.2.103")		//3号機
-//#define IP            ("192.168.0.200")
+#define IP            ("192.168.2.101")         //!< @brief 通信するTPIPのIPアドレス
 
 
 /*--------- include ---------*/
@@ -55,7 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	
 	HWND hwnd; // ウィンドウハンドル
 	MSG  msg;  // イベントのメッセージ
-	TCHAR title[] = TEXT("robot_3");
+	TCHAR title[] = TEXT("robot_1");
 	hwnd = createMainWindow(hInstance, title, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);	// ウィンドウの生成
 
 	TPGM_create(hwnd, VGA, NULL);	// 画像空間（サーフェイス）を生成する
