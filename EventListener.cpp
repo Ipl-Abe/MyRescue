@@ -1,5 +1,5 @@
 #define __CV_H__
-		 /*-------- include --------*/
+/*-------- include --------*/
 #include "TPIP3.h"           // TPIP関係
 #include "EventListener.h"   // ウィンドウのイベント処理関係
 #include "cvMat2HDC.h"
@@ -15,8 +15,8 @@
 #include <stdio.h>
 #pragma  warning(disable:4996)	//	セキュリティが弱い古い関数に対する警告の解除
 
-		 /*-------- メンバ変数定義 --------*/
-		 static struct GC_STRUCT  mPad;		//!< @brief ゲームパッド入力データ
+/*-------- メンバ変数定義 --------*/
+static struct GC_STRUCT  mPad;		//!< @brief ゲームパッド入力データ
 static struct OUT_DT_STR mOutDt;	//!< @brief TPJTで扱う制御情報
 static struct INP_DT_STR mInpDt;	//!< @brief TPJTで扱うセンサー情報
 static int    updatePaint;			//!< @brief onPaint 更新フラグ(0:更新済　1:未更新)
@@ -341,22 +341,9 @@ void onTimer(HWND hwnd, UINT id) {
 		if ((mPad.axis[5] < AXIS_MIN / 2))
 		{
 			//@comment ロボットハンド開
-			if (mOutDt.PWM[0] >= 900)
+			if (mOutDt.PWM[0] <= -800)
 			{
-				mOutDt.PWM[0] = 900;
-			}
-			else
-			{
-				mOutDt.PWM[0] += 50;
-			}
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));
-		}
-		if ((mPad.axis[5] > AXIS_MAX / 2))
-		{
-			//@comment ロボットハンド閉
-			if (mOutDt.PWM[0] <= 0)
-			{
-				mOutDt.PWM[0] = 0;
+				mOutDt.PWM[0] = -800;
 			}
 			else
 			{
@@ -364,8 +351,21 @@ void onTimer(HWND hwnd, UINT id) {
 			}
 			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));
 		}
+		if ((mPad.axis[5] > AXIS_MAX / 2))
+		{
+			//@comment ロボットハンド閉
+			if (mOutDt.PWM[0] >= 0)
+			{
+				mOutDt.PWM[0] = 0;
+			}
+			else
+			{
+				mOutDt.PWM[0] += 50;
+			}
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));
+		}
 	}
-	if (mPad.axis[2] > AXIS_MAX / 2){
+	if (mPad.axis[2] < AXIS_MAX / 2){
 		if ((mPad.axis[5] > AXIS_MIN / 2) && (mPad.axis[5] < AXIS_MAX / 2))
 		{
 			//@comment ロボットハンド右回転
@@ -380,7 +380,7 @@ void onTimer(HWND hwnd, UINT id) {
 			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));
 		}
 	}
-	if (mPad.axis[2] < AXIS_MIN / 2){  
+	if (mPad.axis[2] > AXIS_MIN / 2){
 		if ((mPad.axis[5] > AXIS_MIN / 2) && (mPad.axis[5] < AXIS_MAX / 2))
 		{
 			//@comment ロボットハンド左回転
@@ -392,7 +392,7 @@ void onTimer(HWND hwnd, UINT id) {
 			{
 				mOutDt.PWM[1] -= 50;
 			}
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));
 		}
 	}
 
@@ -402,12 +402,12 @@ void onTimer(HWND hwnd, UINT id) {
 	////////////////////////////////////////
 
 	//@comment 車輪 PWM設定
-	
+
 
 	if (mPad.POV[0] == 0)//@comment 十字キー　上
 	{
-		if (mOutDt.PWM[3] >= 900){
-			mOutDt.PWM[3] = 900;
+		if (mOutDt.PWM[3] >= 250){
+			mOutDt.PWM[3] = 250;
 		}
 		else {
 			mOutDt.PWM[3] += 50;
@@ -436,11 +436,11 @@ void onTimer(HWND hwnd, UINT id) {
 		{
 			mOutDt.PWM2[0] += 25;
 		}
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	
+		TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));
 	}
 	if (mPad.Button[6] == 128)
 	{
-		
+
 		if (mOutDt.PWM2[0] <= -850)
 		{
 			mOutDt.PWM2[0] = -850;
@@ -465,7 +465,7 @@ void onTimer(HWND hwnd, UINT id) {
 		TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));
 	}
 	if (mPad.Button[7] == 128){
-		if (mOutDt.PWM2[2] <=- 850)
+		if (mOutDt.PWM2[2] <= -850)
 		{
 			mOutDt.PWM2[2] = -850;
 		}
@@ -480,23 +480,23 @@ void onTimer(HWND hwnd, UINT id) {
 	//@comment 左アナログスティック
 	//
 	/////////////////////////////////////////
-	
+
 
 	if ((mPad.axis[0] > AXIS_MIN / 2) && (mPad.axis[0] < AXIS_MAX / 2))
 	{
 		if ((mPad.axis[1] < AXIS_MIN / 2))
 		{
 			//@comment 上
-			flag = 1;			
+			flag = 1;
 			mOutDt.d_out = 5;	//@comment  前進　: d_outのD1とD3に1出力
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));
 		}
 		if ((mPad.axis[1] > AXIS_MAX / 2))
 		{
 			//@comment 下
 			flag = 2;
 			mOutDt.d_out = 10;	//@comment 後退　: d_outのD2とD4に1出力
-			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	
+			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));
 		}
 	}
 	if (mPad.axis[0] > AXIS_MAX / 2)
@@ -510,7 +510,7 @@ void onTimer(HWND hwnd, UINT id) {
 		}
 	}
 	if (mPad.axis[0] < AXIS_MIN / 2)
-	{ 
+	{
 		if ((mPad.axis[1] > AXIS_MIN / 2) && (mPad.axis[1] < AXIS_MAX / 2))
 		{
 			//@comment 左
@@ -532,7 +532,7 @@ void onTimer(HWND hwnd, UINT id) {
 
 	//画面描画更新の監視処理
 	//タイマーイベント期間内に画面更新が無かった場合WM_PAINTメッセージを送信を行う。
-	
+
 	if (hwnd != NULL) {		// ウィンドウが生成されているか？
 		if (updatePaint) {	// onPaint 更新フラグが未更新か？
 			InvalidateRect(hwnd, NULL, FALSE);	// WM_PAINTメッセージを送信
@@ -618,7 +618,7 @@ void onKeyup(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags) {
 void onPaint(HWND hwnd) {
 
 	RECT src = { 0, 0, 640, 480 };
-	RECT dst = { 200, 40, 1700, 1200 };
+	RECT dst = { 100, 50, 2000,1600 };
 
 	HDC   hdc;       // デバイスコンテキスト
 
@@ -649,7 +649,7 @@ void onPaint(HWND hwnd) {
 	//cvReleaseImage(&resizeImage);			//データを使っていないときに使用すると
 	//例外扱いされる
 
-	//TPGM_copy(0, 0);			// ウィンドウ座標(0,0)位置に固定サイズ(480x640)でカメラ映像を描画する
+	//TPGM_copy(100, 50);			// ウィンドウ座標(0,0)位置に固定サイズ(480x640)でカメラ映像を描画する
 	TPGM_copy2(&src, &dst);	// サイズを変更してカメラ映像を描画する時に使用する。
 
 	hdc = TPGM_getDC();			// デバイスコンテキストを取得する
@@ -660,45 +660,44 @@ void onPaint(HWND hwnd) {
 	SetBkColor(hdc, RGB(0, 0, 0));				// 文字背景色指定
 	SetTextColor(hdc, RGB(255, 255, 255));		// 文字色指定（白）
 
-	
+
+	sprintf(msg, "motor speed = %3d", mOutDt.PWM[3]);
+	TextOut(hdc, 1050, 100, msg, lstrlen(msg));
+
 	if (flag == 1){
 		lpt = TEXT("前進");
-		TextOut(hdc, 100,550, lpt, lstrlen(lpt));
+		TextOut(hdc, 1050, 130, lpt, lstrlen(lpt));
 	}
 	if (flag == 2){
 		lpt = TEXT("後退");
-		TextOut(hdc, 100, 550, lpt, lstrlen(lpt));
+		TextOut(hdc, 1050, 130, lpt, lstrlen(lpt));
 	}
 
 	if (flag == 3){
 		lpt = TEXT("左進");
-		TextOut(hdc, 100, 550, lpt, lstrlen(lpt));
+		TextOut(hdc, 1050, 130, lpt, lstrlen(lpt));
 	}
 	if (flag == 4){
 		lpt = TEXT("右進");
-		TextOut(hdc, 100, 550, lpt, lstrlen(lpt));
+		TextOut(hdc, 1050, 130, lpt, lstrlen(lpt));
 	}
 	if (flag == 0){
 		lpt = TEXT("停止");
-		TextOut(hdc, 100, 550, lpt, lstrlen(lpt));
+		TextOut(hdc, 1050, 130, lpt, lstrlen(lpt));
 	}
-	
-
 
 
 	sprintf(msg, "hand = %3d", mOutDt.PWM[0]);
-	TextOut(hdc, 100, 500, msg, lstrlen(msg));
-	sprintf(msg, "hand angle = %3d", mOutDt.PWM[1]);
-	TextOut(hdc, 350, 500, msg, lstrlen(msg));
+	TextOut(hdc, 1050, 200, msg, lstrlen(msg));
+	sprintf(msg, "hand angle = %1d", mOutDt.PWM[1]);
+	TextOut(hdc, 1050, 250, msg, lstrlen(msg));
 
-	sprintf(msg, "motor PWM = %3d", mOutDt.PWM[3]);
-	TextOut(hdc, 350, 450, msg, lstrlen(msg));
 
 	sprintf(msg, "No1 PWM = %3d", mOutDt.PWM2[0]);
-	TextOut(hdc, 600, 450, msg, lstrlen(msg));
+	TextOut(hdc, 1050, 350, msg, lstrlen(msg));
 
-	sprintf(msg, "No2 PWM = %3d", mOutDt.PWM2[1]);
-	TextOut(hdc, 600, 500, msg, lstrlen(msg));
+	sprintf(msg, "No2 PWM = %3d", mOutDt.PWM2[2]);
+	TextOut(hdc, 1050, 400, msg, lstrlen(msg));
 	TPGM_releaseDC();			// デバイスコンテキストを解放
 	TPGM_screen();				// スクリーンへ描画
 
