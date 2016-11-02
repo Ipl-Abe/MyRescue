@@ -426,7 +426,7 @@ void onTimer(HWND hwnd, UINT id) {
 
 	//@comment アーム第一関節
 
-	if (mPad.Button[6] == 128)
+	if (mPad.Button[4] == 128)
 	{
 		if (mOutDt.PWM2[0] >= 850)
 		{
@@ -438,7 +438,7 @@ void onTimer(HWND hwnd, UINT id) {
 		}
 			TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));	
 	}
-	if (mPad.Button[4] == 128)
+	if (mPad.Button[6] == 128)
 	{
 		
 		if (mOutDt.PWM2[0] <= -850)
@@ -453,7 +453,7 @@ void onTimer(HWND hwnd, UINT id) {
 	}
 
 	//@comment アーム第二関節
-	if (mPad.Button[7] == 128){
+	if (mPad.Button[5] == 128){
 		if (mOutDt.PWM2[2] >= 850)
 		{
 			mOutDt.PWM2[2] = 850;
@@ -464,7 +464,7 @@ void onTimer(HWND hwnd, UINT id) {
 		}
 		TPJT_set_ctrl(&mOutDt, sizeof(mOutDt));
 	}
-	if (mPad.Button[5] == 128){
+	if (mPad.Button[7] == 128){
 		if (mOutDt.PWM2[2] <=- 850)
 		{
 			mOutDt.PWM2[2] = -850;
